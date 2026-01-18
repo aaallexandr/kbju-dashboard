@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Дашборд для отслеживания веса, BMI и КБЖУ (калорий, белков, жиров, углеводов)">
+  <title>КБЖУ Дашборд</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Flatpickr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+  <div class="dashboard">
+    <header class="dashboard-header">
+
+      <button class="settings-btn" id="openSettings" title="Настройки">
+        ⚙️
+      </button>
+    </header>
+
+    <!-- Loading State -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner"></div>
+      <p>Загрузка данных...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="error-message" id="errorMessage" style="display: none;">
+      <div class="error-content">
+        <span class="error-icon">⚠️</span>
+        <p id="errorText">Ошибка загрузки данных</p>
+        <button onclick="openSettingsPanel()">Открыть настройки</button>
+      </div>
+    </div>
+
+    <!-- Body Metrics Section -->
+    <section class="section" id="body-metrics">
+      <div class="section-header">
+        <h2 class="section-title">⚖️ Вес и BMI</h2>
+        <div class="date-range-picker">
+          <button class="date-range-btn" id="metricsDateRangeBtn">
+            <span class="date-range-text" id="metricsDateRangeText">Выберите период</span>
+            <span id="metricsDaysCount" class="days-count"></span>
+          </button>
+          <button class="date-reset-btn" id="metricsDateResetBtn" title="Сбросить фильтр">✕</button>
+          <input type="text" id="metricsDateRange" style="position: absolute; opacity: 0; pointer-events: none;">
+        </div>
+      </div>
+      <div class="charts-row">
+        <!-- Weight Chart -->
+        <div class="chart-container">
+          <div class="chart-title">📉 Динамика веса</div>
+          <div class="chart-wrapper">
+            <canvas id="weightChart"></canvas>
+          </div>
+        </div>
+
+        <!-- BMI Chart -->
+        <div class="chart-container">
+          <div class="chart-title">📊 Динамика BMI</div>
+          <div class="chart-wrapper">
+            <canvas id="bmiChart"></canvas>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Nutrition Section (Unified) -->
+    <section class="section" id="nutrition">
+      <div class="section-header">
+        <h2 class="section-title">🔥 Калории</h2>
+        <div class="date-range-picker">
+          <button class="date-range-btn" id="nutritionDateRangeBtn">
+            <span class="date-range-text" id="nutritionDateRangeText">Выберите период</span>
+            <span id="nutritionDaysCount" class="days-count"></span>
+          </button>
+          <button class="date-reset-btn" id="nutritionDateResetBtn" title="Сбросить фильтр">✕</button>
+          <input type="text" id="nutritionDateRange" style="position: absolute; opacity: 0; pointer-events: none;">
+        </div>
+      </div>
+
+      <!-- Calories Sub-section -->
+      <div class="sub-section">
+        <div class="calorie-dashboard-grid">
+          <div class="main-column">
+            <div class="chart-container">
+              <div class="chart-title" id="calorieChartTitle">Динамика по дням</div>
+              <div class="calorie-chart-wrapper">
+                <canvas id="calorieChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="sidebar-column">
+            <div class="chart-container">
+              <div class="chart-title">% дней по зонам</div>
+              <div class="distribution-wrapper vertical">
+                <canvas id="distributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Macros Sub-section -->
+      <div class="sub-section">
+        <div class="section-header">
+          <h2 class="section-title">🥗 Макронутриенты</h2>
+        </div>
+        <div class="charts-row-3">
+          <!-- Proteins -->
+          <div class="macro-section">
+            <div class="chart-container">
+              <div class="chart-title" id="proteinsChartTitle">🥩 Белки</div>
+              <div class="chart-wrapper">
+                <canvas id="proteinsChart"></canvas>
+              </div>
+            </div>
+            <div class="macro-card gauge-card proteins">
+              <div class="gauge-title">
+                Успешные дни
+                <span class="info-icon" data-tooltip="Дни без недобора по белку">i</span>
+              </div>
+              <div class="gauge-container">
+                <canvas id="proteinsGaugeChart"></canvas>
+              </div>
+              <div id="proteinsInsight" class="gauge-insight"></div>
+            </div>
+          </div>
+
+          <!-- Fats -->
+          <div class="macro-section">
+            <div class="chart-container">
+              <div class="chart-title" id="fatsChartTitle">🥑 Жиры</div>
+              <div class="chart-wrapper">
+                <canvas id="fatsChart"></canvas>
+              </div>
+            </div>
+            <div class="macro-card gauge-card fats">
+              <div class="gauge-title">
+                Успешные дни
+                <span class="info-icon" data-tooltip="Дни без перебора по жирам">i</span>
+              </div>
+              <div class="gauge-container">
+                <canvas id="fatsGaugeChart"></canvas>
+              </div>
+              <div id="fatsInsight" class="gauge-insight"></div>
+            </div>
+          </div>
+
+          <!-- Carbs -->
+          <div class="macro-section single">
+            <div class="chart-container">
+              <div class="chart-title" id="carbsChartTitle">🍞 Углеводы</div>
+              <div class="chart-wrapper">
+                <canvas id="carbsChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>⚙️ Настройки</h3>
+        <button class="modal-close" id="closeSettings">×</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Google Sheets URL -->
+        <div class="settings-group">
+          <label class="settings-label">📊 URL Google Apps Script</label>
+          <input type="url" class="settings-input" id="settingSheetUrl"
+            placeholder="https://script.google.com/macros/s/.../exec">
+          <p class="settings-hint">URL развернутого веб-приложения из Apps Script</p>
+        </div>
+
+        <hr class="settings-divider">
+
+        <!-- BMI Target -->
+        <div class="settings-group">
+          <label class="settings-label">🎯 Цель BMI</label>
+          <input type="number" class="settings-input" id="settingBmiTarget" value="25" step="0.1" min="15" max="40">
+        </div>
+
+        <hr class="settings-divider">
+
+        <!-- Macro Targets -->
+        <div class="settings-group">
+          <label class="settings-label">🍽️ Дневные планы макронутриентов (г)</label>
+          <div class="settings-macro-grid">
+            <div class="settings-field">
+              <span>Белки</span>
+              <input type="number" class="settings-input small" id="settingProteins" placeholder="г">
+            </div>
+            <div class="settings-field">
+              <span>Жиры</span>
+              <input type="number" class="settings-input small" id="settingFats" placeholder="г">
+            </div>
+            <div class="settings-field">
+              <span>Углеводы</span>
+              <input type="number" class="settings-input small" id="settingCarbs" placeholder="г">
+            </div>
+          </div>
+        </div>
+
+        <hr class="settings-divider">
+
+        <!-- Calorie Zones -->
+        <div class="settings-group">
+          <label class="settings-label">🔥 Границы зон калорий (ккал)</label>
+          <div class="zone-setting">
+            <div class="zone-color" style="background: #FF6B6B;"></div>
+            <span>Нездоровый дефицит до</span>
+            <input type="number" class="settings-input small" id="settingZoneUnhealthyDeficit" value="1700">
+          </div>
+          <div class="zone-setting">
+            <div class="zone-color" style="background: #ABEBC6;"></div>
+            <span>Быстрое похудение до</span>
+            <input type="number" class="settings-input small" id="settingZoneFastLoss" value="1900">
+          </div>
+          <div class="zone-setting">
+            <div class="zone-color" style="background: #58D68D;"></div>
+            <span>Здоровое похудение до</span>
+            <input type="number" class="settings-input small" id="settingZoneHealthyLoss" value="2200">
+          </div>
+          <div class="zone-setting">
+            <div class="zone-color" style="background: #ABEBC6;"></div>
+            <span>Медленное похудение до</span>
+            <input type="number" class="settings-input small" id="settingZoneSlowLoss" value="2400">
+          </div>
+          <div class="zone-setting">
+            <div class="zone-color" style="background: #FFB74D;"></div>
+            <span>Поддержание веса до</span>
+            <input type="number" class="settings-input small" id="settingZoneMaintenance" value="2600">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelSettings">Отмена</button>
+        <button class="btn btn-primary" id="saveSettings">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
