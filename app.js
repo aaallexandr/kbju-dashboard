@@ -272,6 +272,8 @@ function initializeDateRanges() {
             filtersDiv.className = 'quick-filters';
 
             const buttons = [
+                { label: 'последние 7 дней', range: '7-days' },
+                { label: 'последние 14 дней', range: '14-days' },
                 { label: 'текущая неделя', range: 'current-week' },
                 { label: 'прошлая неделя', range: 'last-week' },
                 { label: 'весь период', range: 'all' }
@@ -289,7 +291,13 @@ function initializeDateRanges() {
                     let start = new Date();
                     let end = new Date();
 
-                    if (btnInfo.range === 'current-week') {
+                    if (btnInfo.range === '7-days') {
+                        start.setDate(now.getDate() - 6);
+                        end = new Date();
+                    } else if (btnInfo.range === '14-days') {
+                        start.setDate(now.getDate() - 13);
+                        end = new Date();
+                    } else if (btnInfo.range === 'current-week') {
                         const day = now.getDay();
                         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
                         start = new Date(now.setDate(diff));

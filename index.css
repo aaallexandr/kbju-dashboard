@@ -239,21 +239,24 @@ h1 {
   padding-bottom: 10px;
 }
 
-.flatpickr-rContainer {
-  padding-left: 10px;
-  /* Space between sidebar and calendar */
-}
-
 .quick-filters {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: var(--space-2);
   padding: 12px;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  margin: 10px 0 10px 10px;
+  /* Space around the sidebar */
   min-width: 140px;
-  background: transparent !important;
-  /* Remove separate background */
+  background: rgba(255, 255, 255, 0.03);
+  /* Subtle distinguishable background */
+  border-radius: var(--radius-md);
+  /* Fully rounded corners */
+}
+
+.flatpickr-rContainer {
+  padding-left: 5px;
+  /* Minimal space between sidebar and grid since sidebar has margin */
 }
 
 .quick-filter-btn {
@@ -278,9 +281,9 @@ h1 {
 }
 
 .quick-filter-btn.active {
-  border-color: rgba(79, 172, 254, 0.4);
-  background: rgba(79, 172, 254, 0.2);
-  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background: var(--accent-blue);
+  color: #fff;
 }
 
 /* Sub-section */
@@ -368,6 +371,16 @@ h1 {
 
 .flatpickr-months .flatpickr-month {
   height: 32px !important;
+}
+
+.flatpickr-prev-month:hover svg,
+.flatpickr-next-month:hover svg {
+  fill: var(--accent-blue) !important;
+}
+
+.flatpickr-prev-month:hover,
+.flatpickr-next-month:hover {
+  background: rgba(79, 172, 254, 0.1) !important;
 }
 
 .flatpickr-current-month {
