@@ -231,6 +231,7 @@ h1 {
   display: grid !important;
   grid-template-columns: auto 1fr !important;
   grid-template-rows: auto 1fr !important;
+  /* Back to 2 rows */
   width: auto !important;
   padding: 0 !important;
   overflow: hidden;
@@ -240,7 +241,7 @@ h1 {
 .quick-filters {
   grid-column: 1 !important;
   grid-row: 1 / span 2 !important;
-  /* Full height */
+  /* Back to span 2 rows */
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
@@ -296,6 +297,30 @@ h1 {
   display: block !important;
   background: transparent !important;
   padding: 0 15px 15px 15px !important;
+  /* Restored bottom padding for balance */
+}
+
+.apply-btn {
+  margin-top: 15px;
+  padding: 8px 12px;
+  background: transparent;
+  color: #3fb98e;
+  /* Muted Emerald */
+  border: 1.5px solid #3fb98e;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.apply-btn:hover {
+  background: #3fb98e;
+  color: #fff;
+}
+
+.apply-btn:active {
+  transform: scale(0.98);
 }
 
 .flatpickr-rContainer {

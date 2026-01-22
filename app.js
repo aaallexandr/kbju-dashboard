@@ -256,7 +256,7 @@ function initializeDateRanges() {
         const daysText = `${diffDays} ${suffix}`;
 
         if (presetName === 'весь период') {
-            countEl.textContent = `${presetName}, ${daysText}`;
+            countEl.textContent = `${presetName}: ${daysText}`;
         } else if (presetName) {
             countEl.textContent = presetName;
         } else {
@@ -264,9 +264,11 @@ function initializeDateRanges() {
         }
     };
 
-    // Helper to inject quick buttons into Flatpickr
-    const injectQuickButtons = (instance, fullRange) => {
+    // Helper to inject quick buttons and Apply button into Flatpickr
+    const injectExtras = (instance, fullRange, type) => {
         const container = instance.calendarContainer;
+
+        // 1. Sidebar Presets
         if (!container.querySelector('.quick-filters')) {
             const filtersDiv = document.createElement('div');
             filtersDiv.className = 'quick-filters';
@@ -318,25 +320,61 @@ function initializeDateRanges() {
                     instance.setDate([formatDateToString(start), formatDateToString(end)], true);
                     instance._isQuickFilterTrigger = false;
 
-                    // Highlight selected button
                     filtersDiv.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-
-                    instance.close();
                 };
                 filtersDiv.appendChild(btn);
             });
 
-            // Insert directly into calendar container for grid layout (full height sidebar)
+            // Add spacer
+            const spacer = document.createElement('div');
+            spacer.style.flex = '1';
+            filtersDiv.appendChild(spacer);
+
+            // 2. Apply Button inside sidebar
+            const applyBtn = document.createElement('button');
+            applyBtn.className = 'apply-btn';
+            applyBtn.textContent = 'Применить';
+            applyBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleApply(instance, type);
+                instance.close();
+            };
+            filtersDiv.appendChild(applyBtn);
+
             container.prepend(filtersDiv);
 
-            // Sync initial state if needed
             instance.set('onValueUpdate', (selectedDates, dateStr, inst) => {
                 if (!inst._isQuickFilterTrigger) {
                     filtersDiv.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
                     inst._activePresetName = null;
                 }
             });
+        }
+
+    };
+
+    const handleApply = (instance, type) => {
+        const selectedDates = instance.selectedDates;
+        if (selectedDates.length === 2) {
+            const startDate = formatDateToString(selectedDates[0]);
+            const endDate = formatDateToString(selectedDates[1]);
+
+            if (type === 'nutrition') {
+                updateLabel('nutritionDateRangeText', 'nutritionDaysCount', startDate, endDate, instance._activePresetName);
+                const filteredData = filterByDateRange(kbjuData, startDate, endDate);
+                updateKBJUCharts(filteredData);
+                updateMacroCharts(filteredData);
+            } else if (type === 'metrics') {
+                updateLabel('metricsDateRangeText', 'metricsDaysCount', startDate, endDate, instance._activePresetName);
+                const filteredData = filterByDateRange(weightData, startDate, endDate);
+                if (charts.weight) charts.weight.destroy();
+                if (charts.bmi) charts.bmi.destroy();
+                const weeklyAverages = getWeeklyAverages(filteredData);
+                charts.weight = createWeightChart(weeklyAverages, filteredData);
+                charts.bmi = createBMIChart(weeklyAverages, filteredData);
+            }
         }
     };
 
@@ -348,22 +386,13 @@ function initializeDateRanges() {
         maxDate: new Date(),
         locale: 'ru',
         onReady: (selectedDates, dateStr, instance) => {
-            injectQuickButtons(instance, kbjuRange);
+            injectExtras(instance, kbjuRange, 'nutrition');
         },
         onChange: (selectedDates, dateStr, instance) => {
-            if (selectedDates.length === 2) {
-                const startDate = formatDateToString(selectedDates[0]);
-                const endDate = formatDateToString(selectedDates[1]);
-                updateLabel('nutritionDateRangeText', 'nutritionDaysCount', startDate, endDate, instance._activePresetName);
-
-                const filteredData = filterByDateRange(kbjuData, startDate, endDate);
-                updateKBJUCharts(filteredData);
-                updateMacroCharts(filteredData);
-            }
+            // Only toggle preset highlights, don't filter charts
         }
     });
 
-    // 2. Initialize Metrics Flatpickr
     metricsDatePicker = flatpickr('#metricsDateRange', {
         mode: 'range',
         dateFormat: 'Y-m-d',
@@ -372,21 +401,10 @@ function initializeDateRanges() {
         maxDate: new Date(),
         locale: 'ru',
         onReady: (selectedDates, dateStr, instance) => {
-            injectQuickButtons(instance, weightRange);
+            injectExtras(instance, weightRange, 'metrics');
         },
         onChange: (selectedDates, dateStr, instance) => {
-            if (selectedDates.length === 2) {
-                const startDate = formatDateToString(selectedDates[0]);
-                const endDate = formatDateToString(selectedDates[1]);
-                updateLabel('metricsDateRangeText', 'metricsDaysCount', startDate, endDate, instance._activePresetName);
-
-                const filteredData = filterByDateRange(weightData, startDate, endDate);
-                if (charts.weight) charts.weight.destroy();
-                if (charts.bmi) charts.bmi.destroy();
-                const weeklyAverages = getWeeklyAverages(filteredData);
-                charts.weight = createWeightChart(weeklyAverages, filteredData);
-                charts.bmi = createBMIChart(weeklyAverages, filteredData);
-            }
+            // Only toggle preset highlights, don't filter charts
         }
     });
 
