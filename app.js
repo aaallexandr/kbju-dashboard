@@ -385,6 +385,7 @@ function initializeDateRanges() {
         minDate: MIN_ALLOWED_DATE,
         maxDate: new Date(),
         locale: 'ru',
+        closeOnSelect: false,
         onReady: (selectedDates, dateStr, instance) => {
             injectExtras(instance, kbjuRange, 'nutrition');
         },
@@ -400,6 +401,7 @@ function initializeDateRanges() {
         minDate: MIN_ALLOWED_DATE,
         maxDate: new Date(),
         locale: 'ru',
+        closeOnSelect: false,
         onReady: (selectedDates, dateStr, instance) => {
             injectExtras(instance, weightRange, 'metrics');
         },
