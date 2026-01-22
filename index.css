@@ -423,10 +423,23 @@ h1 {
 
 .flatpickr-day.today {
   border-color: transparent !important;
-  /* Remove red border */
-  color: #ef4444 !important;
-  /* Keep red text */
+  color: var(--text-primary) !important;
+  position: relative;
 }
+
+.flatpickr-day.today::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #fff;
+  opacity: 1;
+}
+
 
 /* Disabled dates (out of min/max bounds) */
 .flatpickr-day.flatpickr-disabled,
