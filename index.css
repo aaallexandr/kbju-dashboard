@@ -226,37 +226,80 @@ h1 {
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* Flatpickr Sidebar Layout */
+/* Flatpickr Sidebar Layout using Grid */
 .flatpickr-calendar {
+  display: grid !important;
+  grid-template-columns: auto 1fr !important;
+  grid-template-rows: auto 1fr !important;
   width: auto !important;
-  padding: 0 10px 0 0 !important;
-  /* Add air on the right */
-}
-
-.flatpickr-innerContainer {
-  display: flex !important;
-  flex-direction: row !important;
-  padding-bottom: 10px;
+  padding: 0 !important;
+  overflow: hidden;
+  background: var(--bg-secondary) !important;
 }
 
 .quick-filters {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: var(--space-2);
-  padding: 12px;
-  margin: 10px 0 10px 10px;
-  /* Space around the sidebar */
-  min-width: 140px;
-  background: rgba(255, 255, 255, 0.03);
-  /* Subtle distinguishable background */
-  border-radius: var(--radius-md);
-  /* Fully rounded corners */
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+  /* Full height */
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  gap: var(--space-2) !important;
+  padding: 15px !important;
+  margin: 0 !important;
+  min-width: 160px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 0 !important;
+}
+
+.flatpickr-months {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  padding: 15px 10px 5px 10px !important;
+  background: transparent !important;
+  position: relative !important;
+}
+
+/* Constrain navigation arrows to the calendar column only */
+.flatpickr-prev-month,
+.flatpickr-next-month {
+  position: absolute !important;
+  top: 10px !important;
+  z-index: 3;
+  padding: 10px !important;
+  cursor: pointer;
+}
+
+.flatpickr-prev-month {
+  left: 10px !important;
+  right: auto !important;
+}
+
+.flatpickr-next-month {
+  right: 10px !important;
+}
+
+.flatpickr-prev-month:hover svg,
+.flatpickr-next-month:hover svg {
+  fill: var(--accent-blue) !important;
+}
+
+.flatpickr-prev-month:hover,
+.flatpickr-next-month:hover {
+  background: rgba(79, 172, 254, 0.1) !important;
+  border-radius: var(--radius-sm);
+}
+
+.flatpickr-innerContainer {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  display: block !important;
+  background: transparent !important;
+  padding: 0 15px 15px 15px !important;
 }
 
 .flatpickr-rContainer {
-  padding-left: 5px;
-  /* Minimal space between sidebar and grid since sidebar has margin */
+  padding: 0 !important;
 }
 
 .quick-filter-btn {
@@ -363,24 +406,6 @@ h1 {
   background-image: none !important;
   border: none !important;
   box-shadow: none !important;
-}
-
-.flatpickr-months {
-  padding: 8px 0 !important;
-}
-
-.flatpickr-months .flatpickr-month {
-  height: 32px !important;
-}
-
-.flatpickr-prev-month:hover svg,
-.flatpickr-next-month:hover svg {
-  fill: var(--accent-blue) !important;
-}
-
-.flatpickr-prev-month:hover,
-.flatpickr-next-month:hover {
-  background: rgba(79, 172, 254, 0.1) !important;
 }
 
 .flatpickr-current-month {

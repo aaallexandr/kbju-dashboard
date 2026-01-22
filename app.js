@@ -327,13 +327,8 @@ function initializeDateRanges() {
                 filtersDiv.appendChild(btn);
             });
 
-            // Insert into innerContainer (between header and days) to keep header at top
-            const innerContainer = container.querySelector('.flatpickr-innerContainer');
-            if (innerContainer) {
-                innerContainer.prepend(filtersDiv);
-            } else {
-                container.prepend(filtersDiv);
-            }
+            // Insert directly into calendar container for grid layout (full height sidebar)
+            container.prepend(filtersDiv);
 
             // Sync initial state if needed
             instance.set('onValueUpdate', (selectedDates, dateStr, inst) => {
