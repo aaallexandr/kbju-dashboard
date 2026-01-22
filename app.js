@@ -319,9 +319,13 @@ function initializeDateRanges() {
                 filtersDiv.appendChild(btn);
             });
 
-            // Insert after month/year header
-            const monthNav = container.querySelector('.flatpickr-months');
-            if (monthNav) monthNav.parentNode.insertBefore(filtersDiv, monthNav.nextSibling);
+            // Insert into innerContainer (between header and days) to keep header at top
+            const innerContainer = container.querySelector('.flatpickr-innerContainer');
+            if (innerContainer) {
+                innerContainer.prepend(filtersDiv);
+            } else {
+                container.prepend(filtersDiv);
+            }
 
             // Sync initial state if needed
             instance.set('onValueUpdate', (selectedDates, dateStr, inst) => {

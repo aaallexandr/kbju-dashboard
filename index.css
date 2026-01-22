@@ -226,25 +226,49 @@ h1 {
   background: rgba(239, 68, 68, 0.1);
 }
 
+/* Flatpickr Sidebar Layout */
+.flatpickr-calendar {
+  width: auto !important;
+  padding: 0 10px 0 0 !important;
+  /* Add air on the right */
+}
+
+.flatpickr-innerContainer {
+  display: flex !important;
+  flex-direction: row !important;
+  padding-bottom: 10px;
+}
+
+.flatpickr-rContainer {
+  padding-left: 10px;
+  /* Space between sidebar and calendar */
+}
+
 .quick-filters {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   gap: var(--space-2);
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  min-width: 140px;
+  background: transparent !important;
+  /* Remove separate background */
 }
 
 .quick-filter-btn {
-  background: var(--bg-card);
+  background: rgba(255, 255, 255, 0.04);
+  /* Match subtle day background */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  padding: 5px 8px;
+  padding: 8px 10px;
   font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  text-align: left;
 }
 
 .quick-filter-btn:hover {
@@ -254,9 +278,9 @@ h1 {
 }
 
 .quick-filter-btn.active {
-  border-color: var(--accent-blue);
-  background: var(--accent-blue);
-  color: #fff;
+  border-color: rgba(79, 172, 254, 0.4);
+  background: rgba(79, 172, 254, 0.2);
+  color: var(--accent-blue);
 }
 
 /* Sub-section */
