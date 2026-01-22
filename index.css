@@ -226,6 +226,36 @@ h1 {
   background: rgba(239, 68, 68, 0.1);
 }
 
+.quick-filters {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.quick-filter-btn {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  padding: var(--space-2) var(--space-3);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.quick-filter-btn:hover {
+  border-color: var(--accent-blue);
+  background: rgba(79, 172, 254, 0.1);
+  color: var(--text-primary);
+}
+
+.quick-filter-btn.active {
+  border-color: var(--accent-blue);
+  background: var(--accent-blue);
+  color: #fff;
+}
+
 /* Sub-section */
 .sub-section {
   margin-bottom: var(--space-6);

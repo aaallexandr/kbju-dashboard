@@ -262,7 +262,7 @@ function initializeDateRanges() {
         minDate: MIN_ALLOWED_DATE,
         maxDate: new Date(),
         locale: 'ru',
-        onChange: (selectedDates) => {
+        onChange: (selectedDates, dateStr, instance) => {
             if (selectedDates.length === 2) {
                 const startDate = formatDateToString(selectedDates[0]);
                 const endDate = formatDateToString(selectedDates[1]);
@@ -271,6 +271,11 @@ function initializeDateRanges() {
                 const filteredData = filterByDateRange(kbjuData, startDate, endDate);
                 updateKBJUCharts(filteredData);
                 updateMacroCharts(filteredData);
+
+                // Clear active quick filters IF this was a manual change (not from our button logic)
+                if (!instance._isQuickFilterTrigger) {
+                    document.querySelectorAll('#nutrition .quick-filter-btn').forEach(b => b.classList.remove('active'));
+                }
             }
         }
     });
@@ -283,7 +288,7 @@ function initializeDateRanges() {
         minDate: MIN_ALLOWED_DATE,
         maxDate: new Date(),
         locale: 'ru',
-        onChange: (selectedDates) => {
+        onChange: (selectedDates, dateStr, instance) => {
             if (selectedDates.length === 2) {
                 const startDate = formatDateToString(selectedDates[0]);
                 const endDate = formatDateToString(selectedDates[1]);
@@ -295,6 +300,11 @@ function initializeDateRanges() {
                 const weeklyAverages = getWeeklyAverages(filteredData);
                 charts.weight = createWeightChart(weeklyAverages, filteredData);
                 charts.bmi = createBMIChart(weeklyAverages, filteredData);
+
+                // Clear active quick filters IF this was a manual change
+                if (!instance._isQuickFilterTrigger) {
+                    document.querySelectorAll('#body-metrics .quick-filter-btn').forEach(b => b.classList.remove('active'));
+                }
             }
         }
     });
@@ -310,10 +320,56 @@ function initializeDateRanges() {
     // Reset Handlers
     document.getElementById('nutritionDateResetBtn').onclick = () => {
         nutritionDatePicker.setDate([kbjuRange.min, kbjuRange.max], true);
+        document.querySelectorAll('#nutrition .quick-filter-btn').forEach(b => b.classList.remove('active'));
     };
     document.getElementById('metricsDateResetBtn').onclick = () => {
         metricsDatePicker.setDate([weightRange.min, weightRange.max], true);
+        document.querySelectorAll('#body-metrics .quick-filter-btn').forEach(b => b.classList.remove('active'));
     };
+
+    // Quick Filter Handlers
+    const setupQuickFilters = (sectionId, picker) => {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+
+        section.querySelectorAll('.quick-filter-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+
+                const rangeType = btn.dataset.range;
+                const now = new Date();
+                let start = new Date();
+                let end = new Date();
+
+                if (rangeType === 'current-week') {
+                    // Monday of current week
+                    const day = now.getDay();
+                    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                    start = new Date(now.setDate(diff));
+                    end = new Date(); // Today
+                } else if (rangeType === 'last-week') {
+                    // Monday of last week
+                    const day = now.getDay();
+                    const diff = now.getDate() - day + (day === 0 ? -13 : -6);
+                    start = new Date(now.setDate(diff));
+                    end = new Date(start);
+                    end.setDate(end.getDate() + 6); // Sunday of last week
+                }
+
+                // Set flag to avoid clearing highlight in onChange
+                picker._isQuickFilterTrigger = true;
+                picker.setDate([formatDateToString(start), formatDateToString(end)], true);
+                picker._isQuickFilterTrigger = false;
+
+                // Toggle active class
+                section.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+        });
+    };
+
+    setupQuickFilters('nutrition', nutritionDatePicker);
+    setupQuickFilters('body-metrics', metricsDatePicker);
 }
 
 // Settings modal handlers
