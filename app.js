@@ -236,9 +236,11 @@ function initializeDateRanges() {
         return `${year}-${month}-${day}`;
     };
 
-    const updateLabel = (textId, countId, startDate, endDate) => {
+    const updateLabel = (textId, countId, startDate, endDate, presetName = null) => {
         document.getElementById(textId).textContent =
             `${formatDisplayDate(startDate)} — ${formatDisplayDate(endDate)}`;
+
+        const countEl = document.getElementById(countId);
 
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -251,10 +253,86 @@ function initializeDateRanges() {
         if (lastDigit === 1 && lastTwoDigits !== 11) suffix = 'день';
         else if ([2, 3, 4].includes(lastDigit) && ![12, 13, 14].includes(lastTwoDigits)) suffix = 'дня';
 
-        document.getElementById(countId).textContent = `${diffDays} ${suffix}`;
+        const daysText = `${diffDays} ${suffix}`;
+
+        if (presetName === 'весь период') {
+            countEl.textContent = `${presetName}, ${daysText}`;
+        } else if (presetName) {
+            countEl.textContent = presetName;
+        } else {
+            countEl.textContent = daysText;
+        }
     };
 
-    // 1. Initialize Nutrition Flatpickr
+    // Helper to inject quick buttons into Flatpickr
+    const injectQuickButtons = (instance, fullRange) => {
+        const container = instance.calendarContainer;
+        if (!container.querySelector('.quick-filters')) {
+            const filtersDiv = document.createElement('div');
+            filtersDiv.className = 'quick-filters';
+
+            const buttons = [
+                { label: 'текущая неделя', range: 'current-week' },
+                { label: 'прошлая неделя', range: 'last-week' },
+                { label: 'весь период', range: 'all' }
+            ];
+
+            buttons.forEach(btnInfo => {
+                const btn = document.createElement('button');
+                btn.className = 'quick-filter-btn';
+                btn.textContent = btnInfo.label;
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const now = new Date();
+                    let start = new Date();
+                    let end = new Date();
+
+                    if (btnInfo.range === 'current-week') {
+                        const day = now.getDay();
+                        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                        start = new Date(now.setDate(diff));
+                        end = new Date();
+                    } else if (btnInfo.range === 'last-week') {
+                        const day = now.getDay();
+                        const diff = now.getDate() - day + (day === 0 ? -13 : -6);
+                        start = new Date(now.setDate(diff));
+                        end = new Date(start);
+                        end.setDate(end.getDate() + 6);
+                    } else if (btnInfo.range === 'all') {
+                        start = new Date(fullRange.min);
+                        end = new Date(fullRange.max);
+                    }
+
+                    instance._isQuickFilterTrigger = true;
+                    instance._activePresetName = btnInfo.label;
+                    instance.setDate([formatDateToString(start), formatDateToString(end)], true);
+                    instance._isQuickFilterTrigger = false;
+
+                    // Highlight selected button
+                    filtersDiv.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    instance.close();
+                };
+                filtersDiv.appendChild(btn);
+            });
+
+            // Insert after month/year header
+            const monthNav = container.querySelector('.flatpickr-months');
+            if (monthNav) monthNav.parentNode.insertBefore(filtersDiv, monthNav.nextSibling);
+
+            // Sync initial state if needed
+            instance.set('onValueUpdate', (selectedDates, dateStr, inst) => {
+                if (!inst._isQuickFilterTrigger) {
+                    filtersDiv.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
+                    inst._activePresetName = null;
+                }
+            });
+        }
+    };
+
     nutritionDatePicker = flatpickr('#nutritionDateRange', {
         mode: 'range',
         dateFormat: 'Y-m-d',
@@ -262,20 +340,18 @@ function initializeDateRanges() {
         minDate: MIN_ALLOWED_DATE,
         maxDate: new Date(),
         locale: 'ru',
+        onReady: (selectedDates, dateStr, instance) => {
+            injectQuickButtons(instance, kbjuRange);
+        },
         onChange: (selectedDates, dateStr, instance) => {
             if (selectedDates.length === 2) {
                 const startDate = formatDateToString(selectedDates[0]);
                 const endDate = formatDateToString(selectedDates[1]);
-                updateLabel('nutritionDateRangeText', 'nutritionDaysCount', startDate, endDate);
+                updateLabel('nutritionDateRangeText', 'nutritionDaysCount', startDate, endDate, instance._activePresetName);
 
                 const filteredData = filterByDateRange(kbjuData, startDate, endDate);
                 updateKBJUCharts(filteredData);
                 updateMacroCharts(filteredData);
-
-                // Clear active quick filters IF this was a manual change (not from our button logic)
-                if (!instance._isQuickFilterTrigger) {
-                    document.querySelectorAll('#nutrition .quick-filter-btn').forEach(b => b.classList.remove('active'));
-                }
             }
         }
     });
@@ -288,11 +364,14 @@ function initializeDateRanges() {
         minDate: MIN_ALLOWED_DATE,
         maxDate: new Date(),
         locale: 'ru',
+        onReady: (selectedDates, dateStr, instance) => {
+            injectQuickButtons(instance, weightRange);
+        },
         onChange: (selectedDates, dateStr, instance) => {
             if (selectedDates.length === 2) {
                 const startDate = formatDateToString(selectedDates[0]);
                 const endDate = formatDateToString(selectedDates[1]);
-                updateLabel('metricsDateRangeText', 'metricsDaysCount', startDate, endDate);
+                updateLabel('metricsDateRangeText', 'metricsDaysCount', startDate, endDate, instance._activePresetName);
 
                 const filteredData = filterByDateRange(weightData, startDate, endDate);
                 if (charts.weight) charts.weight.destroy();
@@ -300,76 +379,18 @@ function initializeDateRanges() {
                 const weeklyAverages = getWeeklyAverages(filteredData);
                 charts.weight = createWeightChart(weeklyAverages, filteredData);
                 charts.bmi = createBMIChart(weeklyAverages, filteredData);
-
-                // Clear active quick filters IF this was a manual change
-                if (!instance._isQuickFilterTrigger) {
-                    document.querySelectorAll('#body-metrics .quick-filter-btn').forEach(b => b.classList.remove('active'));
-                }
             }
         }
     });
 
     // Set initial labels
-    updateLabel('nutritionDateRangeText', 'nutritionDaysCount', kbjuRange.min, kbjuRange.max);
-    updateLabel('metricsDateRangeText', 'metricsDaysCount', weightRange.min, weightRange.max);
+    updateLabel('nutritionDateRangeText', 'nutritionDaysCount', kbjuRange.min, kbjuRange.max, 'весь период');
+    updateLabel('metricsDateRangeText', 'metricsDaysCount', weightRange.min, weightRange.max, 'весь период');
 
     // Button Click Handlers
     document.getElementById('nutritionDateRangeBtn').onclick = () => nutritionDatePicker.open();
     document.getElementById('metricsDateRangeBtn').onclick = () => metricsDatePicker.open();
 
-    // Reset Handlers
-    document.getElementById('nutritionDateResetBtn').onclick = () => {
-        nutritionDatePicker.setDate([kbjuRange.min, kbjuRange.max], true);
-        document.querySelectorAll('#nutrition .quick-filter-btn').forEach(b => b.classList.remove('active'));
-    };
-    document.getElementById('metricsDateResetBtn').onclick = () => {
-        metricsDatePicker.setDate([weightRange.min, weightRange.max], true);
-        document.querySelectorAll('#body-metrics .quick-filter-btn').forEach(b => b.classList.remove('active'));
-    };
-
-    // Quick Filter Handlers
-    const setupQuickFilters = (sectionId, picker) => {
-        const section = document.getElementById(sectionId);
-        if (!section) return;
-
-        section.querySelectorAll('.quick-filter-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-
-                const rangeType = btn.dataset.range;
-                const now = new Date();
-                let start = new Date();
-                let end = new Date();
-
-                if (rangeType === 'current-week') {
-                    // Monday of current week
-                    const day = now.getDay();
-                    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                    start = new Date(now.setDate(diff));
-                    end = new Date(); // Today
-                } else if (rangeType === 'last-week') {
-                    // Monday of last week
-                    const day = now.getDay();
-                    const diff = now.getDate() - day + (day === 0 ? -13 : -6);
-                    start = new Date(now.setDate(diff));
-                    end = new Date(start);
-                    end.setDate(end.getDate() + 6); // Sunday of last week
-                }
-
-                // Set flag to avoid clearing highlight in onChange
-                picker._isQuickFilterTrigger = true;
-                picker.setDate([formatDateToString(start), formatDateToString(end)], true);
-                picker._isQuickFilterTrigger = false;
-
-                // Toggle active class
-                section.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            };
-        });
-    };
-
-    setupQuickFilters('nutrition', nutritionDatePicker);
-    setupQuickFilters('body-metrics', metricsDatePicker);
 }
 
 // Settings modal handlers
