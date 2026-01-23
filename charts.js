@@ -60,6 +60,10 @@ const formatNumber = (val) => {
 function createWeightChart(weeklyData, dailyData = []) {
     const canvas = document.getElementById('weightChart');
     if (!canvas) return null;
+
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
     const ctx = canvas.getContext('2d');
 
     // Create maps for efficient lookup
@@ -212,6 +216,10 @@ function createWeightChart(weeklyData, dailyData = []) {
 function createBMIChart(weeklyData, dailyData = []) {
     const canvas = document.getElementById('bmiChart');
     if (!canvas) return null;
+
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
     const ctx = canvas.getContext('2d');
 
     // Create maps for efficient lookup
@@ -372,6 +380,13 @@ function createBMIChart(weeklyData, dailyData = []) {
 function createCalorieChart(data) {
     const canvas = document.getElementById('calorieChart');
     if (!canvas) return null;
+
+    // Failsafe: destroy existing chart instance on this canvas
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
     const ctx = canvas.getContext('2d');
     const zones = targets.calorieZones;
 
@@ -414,12 +429,12 @@ function createCalorieChart(data) {
             const zones = targets.calorieZones;
 
             const bands = [
-                { color: '#FF6B6B', top: zones.unhealthyDeficit, bottom: y.min },
-                { color: '#ABEBC6', top: zones.fastLoss, bottom: zones.unhealthyDeficit },
-                { color: '#58D68D', top: zones.healthyLoss, bottom: zones.fastLoss },
-                { color: '#ABEBC6', top: zones.slowLoss, bottom: zones.healthyLoss },
-                { color: '#FFB74D', top: zones.maintenance, bottom: zones.slowLoss },
-                { color: '#FF6B6B', top: y.max, bottom: zones.maintenance }
+                { color: 'rgba(255, 107, 107, 0.1)', top: zones.unhealthyDeficit, bottom: y.min },
+                { color: 'rgba(171, 235, 198, 0.1)', top: zones.fastLoss, bottom: zones.unhealthyDeficit },
+                { color: 'rgba(88, 214, 141, 0.1)', top: zones.healthyLoss, bottom: zones.fastLoss },
+                { color: 'rgba(171, 235, 198, 0.1)', top: zones.slowLoss, bottom: zones.healthyLoss },
+                { color: 'rgba(255, 183, 77, 0.1)', top: zones.maintenance, bottom: zones.slowLoss },
+                { color: 'rgba(255, 107, 107, 0.1)', top: y.max, bottom: zones.maintenance }
             ];
 
             ctx.save();
@@ -471,24 +486,48 @@ function createCalorieChart(data) {
     };
 
     return new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: data.map(d => {
                 const date = new Date(d.date);
                 return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`;
             }),
-            datasets: [{
-                label: 'Калории',
-                data: calories,
-                borderColor: '#fff',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)', // Point background
-                borderWidth: 2,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#16213e',
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                tension: 0.3
-            }]
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Калории (фон)',
+                    data: calories,
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8,
+                    order: 2
+                },
+                {
+                    type: 'line',
+                    label: 'Калории',
+                    data: calories,
+                    borderColor: 'transparent',
+                    backgroundColor: '#fff',
+                    pointBackgroundColor: (ctx) => {
+                        const val = ctx.raw;
+                        const targets = window.targets.calorieZones;
+                        if (val <= targets.unhealthyDeficit) return '#FF6B6B';
+                        if (val <= targets.fastLoss) return '#ABEBC6';
+                        if (val <= targets.healthyLoss) return '#58D68D';
+                        if (val <= targets.slowLoss) return '#ABEBC6';
+                        if (val <= targets.maintenance) return '#FFB74D';
+                        return '#FF6B6B';
+                    },
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    showLine: false,
+                    order: 1
+                }
+            ]
         },
         plugins: [calorieZonesPlugin],
         options: {
@@ -530,7 +569,10 @@ function createCalorieChart(data) {
                             const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
                             return `${date.getDate()} ${months[date.getMonth()]}`;
                         },
-                        label: (context) => `${formatNumber(Math.round(context.raw))} ккал`
+                        label: (context) => {
+                            if (context.dataset.type === 'bar') return null; // Hide duplicate in tooltip
+                            return `${formatNumber(Math.round(context.raw))} ккал`;
+                        }
                     }
                 }
             }
@@ -542,6 +584,10 @@ function createCalorieChart(data) {
 function createDistributionChart(data) {
     const canvas = document.getElementById('distributionChart');
     if (!canvas) return null;
+
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
     const ctx = canvas.getContext('2d');
 
     // Categorize data
@@ -712,6 +758,10 @@ function createDistributionChart(data) {
 function createMacroThermometerChart(canvasId, data, macro, color, targetValue, averageValue = null) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
     const ctx = canvas.getContext('2d');
 
     // Update title with average if provided
@@ -885,6 +935,10 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
 function createMacroDistributionChart(canvasId, stats) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
     const ctx = canvas.getContext('2d');
 
     const totalDays = stats.total;
@@ -999,6 +1053,10 @@ function createMacroDistributionChart(canvasId, stats) {
 function createMacroGaugeChart(canvasId, stats) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
     const ctx = canvas.getContext('2d');
 
     const successRate = stats.successRate;
