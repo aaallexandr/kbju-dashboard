@@ -230,8 +230,8 @@ h1 {
 .flatpickr-calendar {
   display: grid !important;
   grid-template-columns: auto 1fr !important;
-  grid-template-rows: auto 1fr !important;
-  /* Back to 2 rows */
+  grid-template-rows: auto 1fr auto !important;
+  /* Header, Dates, Footer */
   width: auto !important;
   padding: 0 !important;
   overflow: hidden;
@@ -240,8 +240,8 @@ h1 {
 
 .quick-filters {
   grid-column: 1 !important;
-  grid-row: 1 / span 2 !important;
-  /* Back to span 2 rows */
+  grid-row: 1 / span 3 !important;
+  /* Full height across all 3 rows */
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
@@ -296,13 +296,21 @@ h1 {
   grid-row: 2 !important;
   display: block !important;
   background: transparent !important;
-  padding: 0 15px 15px 15px !important;
-  /* Restored bottom padding for balance */
+  padding: 0 15px !important;
+}
+
+/* Apply Button Area */
+.calendar-footer {
+  grid-column: 2 !important;
+  grid-row: 3 !important;
+  padding: 5px 15px 15px 15px;
+  display: flex;
+  justify-content: flex-end;
+  background: transparent;
 }
 
 .apply-btn {
-  margin-top: 15px;
-  padding: 8px 12px;
+  padding: 8px 24px;
   background: transparent;
   color: #3fb98e;
   /* Muted Emerald */

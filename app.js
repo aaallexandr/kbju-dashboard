@@ -326,33 +326,27 @@ function initializeDateRanges() {
                 filtersDiv.appendChild(btn);
             });
 
-            // Add spacer
-            const spacer = document.createElement('div');
-            spacer.style.flex = '1';
-            filtersDiv.appendChild(spacer);
-
-            // 2. Apply Button inside sidebar
-            const applyBtn = document.createElement('button');
-            applyBtn.className = 'apply-btn';
-            applyBtn.textContent = 'Применить';
-            applyBtn.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleApply(instance, type);
-                instance.close();
-            };
-            filtersDiv.appendChild(applyBtn);
-
             container.prepend(filtersDiv);
 
-            instance.set('onValueUpdate', (selectedDates, dateStr, inst) => {
-                if (!inst._isQuickFilterTrigger) {
-                    filtersDiv.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
-                    inst._activePresetName = null;
-                }
-            });
-        }
+            // 2. Apply Button Footer (Right side under dates)
+            if (!container.querySelector('.calendar-footer')) {
+                const footer = document.createElement('div');
+                footer.className = 'calendar-footer';
 
+                const applyBtn = document.createElement('button');
+                applyBtn.className = 'apply-btn';
+                applyBtn.textContent = 'Применить';
+                applyBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleApply(instance, type);
+                    instance.close();
+                };
+
+                footer.appendChild(applyBtn);
+                container.appendChild(footer);
+            }
+        }
     };
 
     const handleApply = (instance, type) => {

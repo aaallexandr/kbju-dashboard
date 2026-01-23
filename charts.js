@@ -198,7 +198,7 @@ function createWeightChart(weeklyData, dailyData = []) {
                         },
                         label: (context) => {
                             const val = parseFloat(context.raw);
-                            return `${formatNumber(val.toFixed(1))} кг.`;
+                            return `${formatNumber(val.toFixed(1))} кг`;
                         },
                         labelTextColor: () => '#ffffff'
                     }
