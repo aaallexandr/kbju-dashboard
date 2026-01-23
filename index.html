@@ -81,16 +81,16 @@
       </div>
     </section>
 
-    <!-- Nutrition Section (Unified) -->
+    <!-- Nutrition Section (Calories) -->
     <section class="section" id="nutrition">
-      <div class="section-header">
+      <div class="section-header sticky-header">
         <h2 class="section-title">🔥 Калории</h2>
         <div class="date-range-picker">
-          <button class="date-range-btn" id="nutritionDateRangeBtn">
-            <span class="date-range-text" id="nutritionDateRangeText">Выберите период</span>
-            <span id="nutritionDaysCount" class="days-count"></span>
+          <button class="date-range-btn" id="caloriesDateRangeBtn">
+            <span class="date-range-text" id="caloriesDateRangeText">Выберите период</span>
+            <span id="caloriesDaysCount" class="days-count"></span>
           </button>
-          <input type="text" id="nutritionDateRange" style="position: absolute; opacity: 0; pointer-events: none;">
+          <input type="text" id="caloriesDateRange" style="position: absolute; opacity: 0; pointer-events: none;">
         </div>
       </div>
 
@@ -115,60 +115,67 @@
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Macros Sub-section -->
-      <div class="sub-section">
-        <div class="section-header">
-          <h2 class="section-title">🥗 Макронутриенты</h2>
+    <!-- Macros Section -->
+    <section class="section" id="macros">
+      <div class="section-header sticky-header">
+        <h2 class="section-title">🥗 Макронутриенты</h2>
+        <div class="date-range-picker">
+          <button class="date-range-btn" id="macrosDateRangeBtn">
+            <span class="date-range-text" id="macrosDateRangeText">Выберите период</span>
+            <span id="macrosDaysCount" class="days-count"></span>
+          </button>
+          <input type="text" id="macrosDateRange" style="position: absolute; opacity: 0; pointer-events: none;">
         </div>
-        <div class="charts-row-3">
-          <!-- Proteins -->
-          <div class="macro-section">
-            <div class="chart-container">
-              <div class="chart-title" id="proteinsChartTitle">🥩 Белки</div>
-              <div class="chart-wrapper">
-                <canvas id="proteinsChart"></canvas>
-              </div>
-            </div>
-            <div class="macro-card gauge-card proteins">
-              <div class="gauge-title">
-                Успешные дни
-                <span class="info-icon" data-tooltip="Дни без недобора по белку">i</span>
-              </div>
-              <div class="gauge-container">
-                <canvas id="proteinsGaugeChart"></canvas>
-              </div>
-              <div id="proteinsInsight" class="gauge-insight"></div>
+      </div>
+      <div class="charts-row-3">
+        <!-- Proteins -->
+        <div class="macro-section">
+          <div class="chart-container">
+            <div class="chart-title" id="proteinsChartTitle">🥩 Белки</div>
+            <div class="chart-wrapper">
+              <canvas id="proteinsChart"></canvas>
             </div>
           </div>
-
-          <!-- Fats -->
-          <div class="macro-section">
-            <div class="chart-container">
-              <div class="chart-title" id="fatsChartTitle">🥑 Жиры</div>
-              <div class="chart-wrapper">
-                <canvas id="fatsChart"></canvas>
-              </div>
+          <div class="macro-card gauge-card proteins">
+            <div class="gauge-title">
+              Успешные дни
+              <span class="info-icon" data-tooltip="Дни без недобора по белку">i</span>
             </div>
-            <div class="macro-card gauge-card fats">
-              <div class="gauge-title">
-                Успешные дни
-                <span class="info-icon" data-tooltip="Дни без перебора по жирам">i</span>
-              </div>
-              <div class="gauge-container">
-                <canvas id="fatsGaugeChart"></canvas>
-              </div>
-              <div id="fatsInsight" class="gauge-insight"></div>
+            <div class="gauge-container">
+              <canvas id="proteinsGaugeChart"></canvas>
+            </div>
+            <div id="proteinsInsight" class="gauge-insight"></div>
+          </div>
+        </div>
+
+        <!-- Fats -->
+        <div class="macro-section">
+          <div class="chart-container">
+            <div class="chart-title" id="fatsChartTitle">🥑 Жиры</div>
+            <div class="chart-wrapper">
+              <canvas id="fatsChart"></canvas>
             </div>
           </div>
+          <div class="macro-card gauge-card fats">
+            <div class="gauge-title">
+              Успешные дни
+              <span class="info-icon" data-tooltip="Дни без перебора по жирам">i</span>
+            </div>
+            <div class="gauge-container">
+              <canvas id="fatsGaugeChart"></canvas>
+            </div>
+            <div id="fatsInsight" class="gauge-insight"></div>
+          </div>
+        </div>
 
-          <!-- Carbs -->
-          <div class="macro-section single">
-            <div class="chart-container">
-              <div class="chart-title" id="carbsChartTitle">🍞 Углеводы</div>
-              <div class="chart-wrapper">
-                <canvas id="carbsChart"></canvas>
-              </div>
+        <!-- Carbs -->
+        <div class="macro-section single">
+          <div class="chart-container">
+            <div class="chart-title" id="carbsChartTitle">🍞 Углеводы</div>
+            <div class="chart-wrapper">
+              <canvas id="carbsChart"></canvas>
             </div>
           </div>
         </div>

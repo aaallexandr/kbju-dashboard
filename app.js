@@ -208,11 +208,13 @@ function updateMacroCharts(data) {
 
 // Initialize date range inputs with data bounds
 const MIN_ALLOWED_DATE = "2025-12-22";
-let nutritionDatePicker = null;
+let caloriesDatePicker = null;
+let macrosDatePicker = null;
 let metricsDatePicker = null;
 
 function initializeDateRanges() {
-    if (nutritionDatePicker) nutritionDatePicker.destroy();
+    if (caloriesDatePicker) caloriesDatePicker.destroy();
+    if (macrosDatePicker) macrosDatePicker.destroy();
     if (metricsDatePicker) metricsDatePicker.destroy();
 
     let kbjuRange = getDateRange(kbjuData);
@@ -237,10 +239,11 @@ function initializeDateRanges() {
     };
 
     const updateLabel = (textId, countId, startDate, endDate, presetName = null) => {
-        document.getElementById(textId).textContent =
-            `${formatDisplayDate(startDate)} — ${formatDisplayDate(endDate)}`;
-
+        const textEl = document.getElementById(textId);
         const countEl = document.getElementById(countId);
+        if (!textEl || !countEl) return;
+
+        textEl.textContent = `${formatDisplayDate(startDate)} — ${formatDisplayDate(endDate)}`;
 
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -264,11 +267,9 @@ function initializeDateRanges() {
         }
     };
 
-    // Helper to inject quick buttons and Apply button into Flatpickr
     const injectExtras = (instance, fullRange, type) => {
         const container = instance.calendarContainer;
 
-        // 1. Sidebar Presets
         if (!container.querySelector('.quick-filters')) {
             const filtersDiv = document.createElement('div');
             filtersDiv.className = 'quick-filters';
@@ -328,7 +329,6 @@ function initializeDateRanges() {
 
             container.prepend(filtersDiv);
 
-            // 2. Apply Button Footer (Right side under dates)
             if (!container.querySelector('.calendar-footer')) {
                 const footer = document.createElement('div');
                 footer.className = 'calendar-footer';
@@ -355,24 +355,33 @@ function initializeDateRanges() {
             const startDate = formatDateToString(selectedDates[0]);
             const endDate = formatDateToString(selectedDates[1]);
 
-            if (type === 'nutrition') {
-                updateLabel('nutritionDateRangeText', 'nutritionDaysCount', startDate, endDate, instance._activePresetName);
+            if (type === 'calories' || type === 'macros') {
+                // Synchronize pickers
+                const otherPicker = type === 'calories' ? macrosDatePicker : caloriesDatePicker;
+                if (otherPicker) {
+                    otherPicker._activePresetName = instance._activePresetName;
+                    otherPicker.setDate([startDate, endDate], false); // Don't trigger recursive jump
+                }
+
+                updateLabel('caloriesDateRangeText', 'caloriesDaysCount', startDate, endDate, instance._activePresetName);
+                updateLabel('macrosDateRangeText', 'macrosDaysCount', startDate, endDate, instance._activePresetName);
+
                 const filteredData = filterByDateRange(kbjuData, startDate, endDate);
                 updateKBJUCharts(filteredData);
                 updateMacroCharts(filteredData);
             } else if (type === 'metrics') {
                 updateLabel('metricsDateRangeText', 'metricsDaysCount', startDate, endDate, instance._activePresetName);
                 const filteredData = filterByDateRange(weightData, startDate, endDate);
+                const weeklyAverages = getWeeklyAverages(filteredData);
                 if (charts.weight) charts.weight.destroy();
                 if (charts.bmi) charts.bmi.destroy();
-                const weeklyAverages = getWeeklyAverages(filteredData);
                 charts.weight = createWeightChart(weeklyAverages, filteredData);
                 charts.bmi = createBMIChart(weeklyAverages, filteredData);
             }
         }
     };
 
-    nutritionDatePicker = flatpickr('#nutritionDateRange', {
+    caloriesDatePicker = flatpickr('#caloriesDateRange', {
         mode: 'range',
         dateFormat: 'Y-m-d',
         defaultDate: [kbjuRange.min, kbjuRange.max],
@@ -381,10 +390,20 @@ function initializeDateRanges() {
         locale: 'ru',
         closeOnSelect: false,
         onReady: (selectedDates, dateStr, instance) => {
-            injectExtras(instance, kbjuRange, 'nutrition');
-        },
-        onChange: (selectedDates, dateStr, instance) => {
-            // Only toggle preset highlights, don't filter charts
+            injectExtras(instance, kbjuRange, 'calories');
+        }
+    });
+
+    macrosDatePicker = flatpickr('#macrosDateRange', {
+        mode: 'range',
+        dateFormat: 'Y-m-d',
+        defaultDate: [kbjuRange.min, kbjuRange.max],
+        minDate: MIN_ALLOWED_DATE,
+        maxDate: new Date(),
+        locale: 'ru',
+        closeOnSelect: false,
+        onReady: (selectedDates, dateStr, instance) => {
+            injectExtras(instance, kbjuRange, 'macros');
         }
     });
 
@@ -398,20 +417,18 @@ function initializeDateRanges() {
         closeOnSelect: false,
         onReady: (selectedDates, dateStr, instance) => {
             injectExtras(instance, weightRange, 'metrics');
-        },
-        onChange: (selectedDates, dateStr, instance) => {
-            // Only toggle preset highlights, don't filter charts
         }
     });
 
-    // Set initial labels
-    updateLabel('nutritionDateRangeText', 'nutritionDaysCount', kbjuRange.min, kbjuRange.max, 'весь период');
+    // Initial labels
+    updateLabel('caloriesDateRangeText', 'caloriesDaysCount', kbjuRange.min, kbjuRange.max, 'весь период');
+    updateLabel('macrosDateRangeText', 'macrosDaysCount', kbjuRange.min, kbjuRange.max, 'весь период');
     updateLabel('metricsDateRangeText', 'metricsDaysCount', weightRange.min, weightRange.max, 'весь период');
 
-    // Button Click Handlers
-    document.getElementById('nutritionDateRangeBtn').onclick = () => nutritionDatePicker.open();
+    // Click Handlers
+    document.getElementById('caloriesDateRangeBtn').onclick = () => caloriesDatePicker.open();
+    document.getElementById('macrosDateRangeBtn').onclick = () => macrosDatePicker.open();
     document.getElementById('metricsDateRangeBtn').onclick = () => metricsDatePicker.open();
-
 }
 
 // Settings modal handlers
