@@ -4,6 +4,7 @@
 const HEIGHT_CM = 175;
 const STORAGE_KEY_SETTINGS = 'kbju_dashboard_settings';
 const STORAGE_KEY_SHEET_URL = 'kbju_dashboard_sheet_url';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbw7KMExjoF2CF0zIQk1nrjR5osaLEiGCh40OpqVMl22y2x4YFRGIfKQlIU1xiYe4TybgQ/exec';
 
 // Default target values (can be overridden in settings)
 let targets = {
@@ -76,9 +77,9 @@ function saveSettings(newSettings) {
   }
 }
 
-// Get Google Sheets URL from localStorage
+// Get Google Sheets URL (from localStorage or hardcoded default)
 function getSheetUrl() {
-  return localStorage.getItem(STORAGE_KEY_SHEET_URL) || '';
+  return localStorage.getItem(STORAGE_KEY_SHEET_URL) || DEFAULT_SHEET_URL;
 }
 
 // Save Google Sheets URL to localStorage
