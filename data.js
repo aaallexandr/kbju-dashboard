@@ -209,6 +209,31 @@ function getWeeklyAverages(data) {
     }));
 }
 
+// Aggregate data by week for charts
+// Uses fullData to calculate averages for all weeks that have at least one day in filteredData
+function aggregateDataByWeek(fullData, filteredData, key) {
+  const visibleWeeks = new Set(filteredData.map(d => getWeekEndingSunday(d.date)));
+  const weeklyMap = {};
+
+  fullData.forEach(d => {
+    if (d[key] === null) return;
+    const weekKey = getWeekEndingSunday(d.date);
+    if (!visibleWeeks.has(weekKey)) return;
+
+    if (!weeklyMap[weekKey]) weeklyMap[weekKey] = { sum: 0, count: 0 };
+    weeklyMap[weekKey].sum += d[key];
+    weeklyMap[weekKey].count++;
+  });
+
+  return Object.entries(weeklyMap)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, values]) => ({
+      date: date,
+      [key]: values.sum / values.count,
+      isWeekly: true
+    }));
+}
+
 // Get category distribution for donut chart
 function getCategoryDistribution(data) {
   const categories = {};

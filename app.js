@@ -16,6 +16,10 @@ let charts = {
     fatsGauge: null
 };
 
+// View status for nutrition section (daily or weekly)
+let nutritionView = 'daily';
+
+
 // DOM Elements
 const loadingOverlay = document.getElementById('loadingOverlay');
 const errorMessage = document.getElementById('errorMessage');
@@ -144,8 +148,17 @@ function updateKBJUCharts(data) {
 
     if (data.length === 0) return;
 
-    charts.calorie = createCalorieChart(data);
-    charts.distribution = createDistributionChart(data);
+    const filteredData = data.filter(d => d.calories !== null);
+    const calorieData = nutritionView === 'weekly' ? aggregateDataByWeek(kbjuData, filteredData, 'calories') : filteredData;
+
+    charts.calorie = createCalorieChart(calorieData);
+    charts.distribution = createDistributionChart(filteredData);
+
+    // Update distribution title
+    const distTitleEl = document.getElementById('distributionChartTitle');
+    if (distTitleEl) {
+        distTitleEl.textContent = nutritionView === 'weekly' ? '% недель по зонам' : '% дней по зонам';
+    }
 }
 
 // Update Macro charts and stats
@@ -158,20 +171,52 @@ function updateMacroCharts(data) {
 
     if (filteredData.length === 0) return;
 
-    const proteinStats = getMacroStats(filteredData, 'proteins');
-    const fatStats = getMacroStats(filteredData, 'fats');
-    const carbStats = getMacroStats(filteredData, 'carbs');
+    const proteinData = nutritionView === 'weekly' ? aggregateDataByWeek(kbjuData, filteredData, 'proteins') : filteredData;
+    const fatData = nutritionView === 'weekly' ? aggregateDataByWeek(kbjuData, filteredData, 'fats') : filteredData;
+    const carbData = nutritionView === 'weekly' ? aggregateDataByWeek(kbjuData, filteredData, 'carbs') : filteredData;
 
-    charts.proteins = createMacroThermometerChart('proteinsChart', filteredData, 'proteins', colors.proteins, targets.proteins, proteinStats.avg);
-    charts.fats = createMacroThermometerChart('fatsChart', filteredData, 'fats', colors.fats, targets.fats, fatStats.avg);
-    charts.carbs = createMacroThermometerChart('carbsChart', filteredData, 'carbs', colors.carbs, targets.carbs, carbStats.avg);
+    const dailyProteinStats = getMacroStats(filteredData, 'proteins');
+    const dailyFatStats = getMacroStats(filteredData, 'fats');
+
+    const proteinStats = nutritionView === 'weekly' ? getMacroStats(proteinData, 'proteins') : dailyProteinStats;
+    const fatStats = nutritionView === 'weekly' ? getMacroStats(fatData, 'fats') : dailyFatStats;
+    const carbStats = getMacroStats(carbData, 'carbs');
+
+    charts.proteins = createMacroThermometerChart('proteinsChart', proteinData, 'proteins', colors.proteins, targets.proteins, proteinStats.avg);
+    charts.fats = createMacroThermometerChart('fatsChart', fatData, 'fats', colors.fats, targets.fats, fatStats.avg);
+    charts.carbs = createMacroThermometerChart('carbsChart', carbData, 'carbs', colors.carbs, targets.carbs, carbStats.avg);
 
     // Gauge charts
     if (charts.proteinsGauge) charts.proteinsGauge.destroy();
     if (charts.fatsGauge) charts.fatsGauge.destroy();
 
-    charts.proteinsGauge = createMacroGaugeChart('proteinsGaugeChart', proteinStats);
-    charts.fatsGauge = createMacroGaugeChart('fatsGaugeChart', fatStats);
+    charts.proteinsGauge = createMacroGaugeChart('proteinsGaugeChart', proteinStats, nutritionView);
+    charts.fatsGauge = createMacroGaugeChart('fatsGaugeChart', fatStats, nutritionView);
+
+    // Update gauge titles and tooltips
+    const proteinsTitleEl = document.getElementById('proteinsGaugeTitle');
+    const proteinsTooltipEl = document.getElementById('proteinsGaugeTooltip');
+    if (proteinsTitleEl && proteinsTooltipEl) {
+        if (nutritionView === 'weekly') {
+            proteinsTitleEl.textContent = 'Успешные недели';
+            proteinsTooltipEl.setAttribute('data-tooltip', 'Недели без недобора по белку (в среднем)');
+        } else {
+            proteinsTitleEl.textContent = 'Успешные дни';
+            proteinsTooltipEl.setAttribute('data-tooltip', 'Дни без недобора по белку');
+        }
+    }
+
+    const fatsTitleEl = document.getElementById('fatsGaugeTitle');
+    const fatsTooltipEl = document.getElementById('fatsGaugeTooltip');
+    if (fatsTitleEl && fatsTooltipEl) {
+        if (nutritionView === 'weekly') {
+            fatsTitleEl.textContent = 'Успешные недели';
+            fatsTooltipEl.setAttribute('data-tooltip', 'Недели без перебора по жирам (в среднем)');
+        } else {
+            fatsTitleEl.textContent = 'Успешные дни';
+            fatsTooltipEl.setAttribute('data-tooltip', 'Дни без перебора по жирам');
+        }
+    }
 
     // Dynamic Insight Text
     const updateInsight = (elementId, avg, target, macroType) => {
@@ -208,6 +253,21 @@ const MIN_ALLOWED_DATE = "2025-12-22";
 let nutritionDatePicker = null;
 let metricsDatePicker = null;
 
+
+// Helper functions for date formatting
+const formatDisplayDate = (dateStr) => {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}.${month}.${year}`;
+};
+
+const formatDateToString = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 function initializeDateRanges() {
     if (nutritionDatePicker) nutritionDatePicker.destroy();
     if (metricsDatePicker) metricsDatePicker.destroy();
@@ -215,23 +275,8 @@ function initializeDateRanges() {
     let kbjuRange = getDateRange(kbjuData);
     let weightRange = getDateRange(weightData);
 
-    // Ensure initial range doesn't start before the constant limit
     if (kbjuRange.min < MIN_ALLOWED_DATE) kbjuRange.min = MIN_ALLOWED_DATE;
     if (weightRange.min < MIN_ALLOWED_DATE) weightRange.min = MIN_ALLOWED_DATE;
-
-    // Helper functions
-    const formatDisplayDate = (dateStr) => {
-        const [year, month, day] = dateStr.split('-');
-        return `${day}.${month}.${year}`;
-    };
-
-    const formatDateToString = (date) => {
-        if (!date) return '';
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
 
     const updateLabel = (textId, countId, startDate, endDate, presetName = null) => {
         const textEl = document.getElementById(textId);
@@ -414,6 +459,31 @@ function initializeDateRanges() {
         metricsDatePicker._activePresetName = 'весь период';
         handleApply(metricsDatePicker, 'metrics');
     };
+
+    // Global Nutrition View Toggle Handler
+    const globalToggle = document.getElementById('globalNutritionToggle');
+    if (globalToggle) {
+        globalToggle.querySelectorAll('.view-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                const view = btn.getAttribute('data-view');
+                if (nutritionView === view) return;
+
+                nutritionView = view;
+                globalToggle.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Refresh all nutrition charts
+                const selectedDates = nutritionDatePicker.selectedDates;
+                const startDate = formatDateToString(selectedDates[0]);
+                const endDate = formatDateToString(selectedDates[1]);
+                const filteredData = filterByDateRange(kbjuData, startDate, endDate);
+
+                updateKBJUCharts(filteredData);
+                updateMacroCharts(filteredData);
+            };
+        });
+    }
 }
 
 // Settings modal handlers

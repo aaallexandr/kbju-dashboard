@@ -87,6 +87,10 @@
       <div class="section-header sticky-header">
         <h2 class="section-title">🔥 Калории и макронутриенты</h2>
         <div class="date-range-picker">
+          <div class="view-toggle" id="globalNutritionToggle">
+            <button class="view-btn active" data-view="daily">Дни</button>
+            <button class="view-btn" data-view="weekly">Недели</button>
+          </div>
           <button class="date-range-btn" id="nutritionDateRangeBtn">
             <span class="date-range-text" id="nutritionDateRangeText">Выберите период</span>
             <span id="nutritionDaysCount" class="days-count"></span>
@@ -101,7 +105,9 @@
         <div class="calorie-dashboard-grid">
           <div class="main-column">
             <div class="chart-container">
-              <div class="chart-title" id="calorieChartTitle">Динамика калорий</div>
+              <div class="chart-header">
+                <div class="chart-title" id="calorieChartTitle">Динамика калорий</div>
+              </div>
               <div class="calorie-chart-wrapper">
                 <canvas id="calorieChart"></canvas>
               </div>
@@ -109,7 +115,7 @@
           </div>
           <div class="sidebar-column">
             <div class="chart-container">
-              <div class="chart-title">% дней по зонам</div>
+              <div class="chart-title" id="distributionChartTitle">% дней по зонам</div>
               <div class="distribution-wrapper vertical">
                 <canvas id="distributionChart"></canvas>
               </div>
@@ -124,15 +130,17 @@
           <!-- Proteins -->
           <div class="macro-section">
             <div class="chart-container">
-              <div class="chart-title" id="proteinsChartTitle">🥩 Белки</div>
+              <div class="chart-header">
+                <div class="chart-title" id="proteinsChartTitle">Белки</div>
+              </div>
               <div class="chart-wrapper">
                 <canvas id="proteinsChart"></canvas>
               </div>
             </div>
             <div class="macro-card gauge-card proteins">
               <div class="gauge-title">
-                Успешные дни
-                <span class="info-icon" data-tooltip="Дни без недобора по белку">i</span>
+                <span id="proteinsGaugeTitle">Успешные дни</span>
+                <span class="info-icon" id="proteinsGaugeTooltip" data-tooltip="Дни без недобора по белку">i</span>
               </div>
               <div class="gauge-container">
                 <canvas id="proteinsGaugeChart"></canvas>
@@ -144,15 +152,17 @@
           <!-- Fats -->
           <div class="macro-section">
             <div class="chart-container">
-              <div class="chart-title" id="fatsChartTitle">🥑 Жиры</div>
+              <div class="chart-header">
+                <div class="chart-title" id="fatsChartTitle">Жиры</div>
+              </div>
               <div class="chart-wrapper">
                 <canvas id="fatsChart"></canvas>
               </div>
             </div>
             <div class="macro-card gauge-card fats">
               <div class="gauge-title">
-                Успешные дни
-                <span class="info-icon" data-tooltip="Дни без перебора по жирам">i</span>
+                <span id="fatsGaugeTitle">Успешные дни</span>
+                <span class="info-icon" id="fatsGaugeTooltip" data-tooltip="Дни без перебора по жирам">i</span>
               </div>
               <div class="gauge-container">
                 <canvas id="fatsGaugeChart"></canvas>
@@ -164,7 +174,9 @@
           <!-- Carbs -->
           <div class="macro-section single">
             <div class="chart-container">
-              <div class="chart-title" id="carbsChartTitle">🍞 Углеводы</div>
+              <div class="chart-header">
+                <div class="chart-title" id="carbsChartTitle">Углеводы</div>
+              </div>
               <div class="chart-wrapper">
                 <canvas id="carbsChart"></canvas>
               </div>

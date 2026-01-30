@@ -398,7 +398,7 @@ function createCalorieChart(data) {
     const titleEl = document.getElementById('calorieChartTitle');
     if (titleEl) {
         titleEl.innerHTML = `
-            <div>Динамика по дням</div>
+            <div>Динамика калорий</div>
             <div style="font-size: 13px; color: var(--text-muted); font-weight: 400; margin-top: 2px;">
                 ~${formatNumber(avgCalories)} ккал
             </div>
@@ -538,11 +538,17 @@ function createCalorieChart(data) {
                     padding: 12,
                     callbacks: {
                         title: (items) => {
-                            const date = new Date(data[items[0].dataIndex].date);
+                            const d = data[items[0].dataIndex];
+                            const date = new Date(d.date);
                             const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                            return `${date.getDate()} ${months[date.getMonth()]}`;
+                            const dateStr = `${date.getDate()} ${months[date.getMonth()]}`;
+                            return d.isWeekly ? `Неделя до ${dateStr}` : dateStr;
                         },
-                        label: (context) => `${formatNumber(Math.round(context.raw))} ккал`
+                        label: (context) => {
+                            const d = data[context.dataIndex];
+                            const label = d.isWeekly ? 'Среднее: ' : '';
+                            return `${label}${formatNumber(Math.round(context.raw))} ккал`;
+                        }
                     }
                 }
             }
@@ -742,17 +748,17 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
         if (titleEl) {
             // Keep original icon/text map
             const titles = {
-                proteins: '🥩 Белки',
-                fats: '🥑 Жиры',
-                carbs: '🍞 Углеводы'
+                proteins: 'Белки',
+                fats: 'Жиры',
+                carbs: 'Углеводы'
             };
 
             const baseTitle = titles[macro] || titleEl.textContent;
 
             titleEl.innerHTML = `
-                <div>${baseTitle}</div>
+                <div style="font-weight: 700;">${baseTitle}</div>
                 <div style="font-size: 13px; color: var(--text-muted); font-weight: 400; margin-top: 2px;">
-                    ~${formatNumber(averageValue)} г
+                    ~${formatNumber(Math.round(averageValue))} г
                 </div>
             `;
         }
@@ -791,28 +797,31 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
     const paddingMultiplier = 0.1;
     const yMax = Math.ceil((yMaxLimit * (1 + paddingMultiplier)) / 20) * 20;
 
-    // Single Target Line Plugin
-    const targetLinePlugin = {
-        id: 'targetLine',
+    // Target and Average Lines Plugin
+    const linesPlugin = {
+        id: 'macroLines',
         beforeDatasetsDraw(chart) {
             const { ctx, chartArea: { left, width }, scales: { y } } = chart;
-            if (!target) return;
 
-            ctx.save();
-            ctx.setLineDash([4, 4]);
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            // Draw Target Line
+            if (target) {
+                ctx.save();
+                ctx.setLineDash([4, 4]);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
 
-            const yLine = y.getPixelForValue(target);
-            ctx.beginPath();
-            ctx.moveTo(left, yLine);
-            ctx.lineTo(left + width, yLine);
-            ctx.stroke();
-            ctx.restore();
+                const yLine = y.getPixelForValue(target);
+                ctx.beginPath();
+                ctx.moveTo(left, yLine);
+                ctx.lineTo(left + width, yLine);
+                ctx.stroke();
+                ctx.restore();
+            }
         }
     };
 
     const datasets = [];
+
     if (macro === 'carbs') {
         datasets.push({
             data: s1,
@@ -853,7 +862,7 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
             labels: labels,
             datasets: datasets
         },
-        plugins: [targetLinePlugin],
+        plugins: [linesPlugin],
         options: {
             ...commonOptions,
             scales: {
@@ -884,13 +893,16 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
                     displayColors: false,
                     callbacks: {
                         title: (items) => {
-                            const date = new Date(validData[items[0].dataIndex].date);
+                            const d = validData[items[0].dataIndex];
+                            const date = new Date(d.date);
                             const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                            return `${date.getDate()} ${months[date.getMonth()]}`;
+                            const dateStr = `${date.getDate()} ${months[date.getMonth()]}`;
+                            return d.isWeekly ? `Неделя до ${dateStr}` : dateStr;
                         },
                         label: (context) => {
                             const val = validData[context.dataIndex][macro];
-                            return `${formatNumber(val)} г`;
+                            const label = validData[context.dataIndex].isWeekly ? 'Среднее: ' : '';
+                            return `${label}${formatNumber(Math.round(val))} г`;
                         }
                     }
                 }
@@ -1020,7 +1032,7 @@ function createMacroDistributionChart(canvasId, stats) {
 }
 
 // Gauge Chart (Full Circle)
-function createMacroGaugeChart(canvasId, stats) {
+function createMacroGaugeChart(canvasId, stats, unit = 'daily') {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
 
@@ -1031,7 +1043,24 @@ function createMacroGaugeChart(canvasId, stats) {
 
     const successRate = stats.successRate;
     const successCount = stats.successCount;
-    const totalDays = stats.total;
+    const totalCount = stats.total;
+
+    // Russian declension helper
+    const getDeclension = (n, type) => {
+        const num = Math.abs(n) % 100;
+        const n1 = num % 10;
+        if (type === 'daily') {
+            if (num > 10 && num < 20) return 'дней';
+            if (n1 > 1 && n1 < 5) return 'дня';
+            if (n1 === 1) return 'день';
+            return 'дней';
+        } else {
+            if (num > 10 && num < 20) return 'недель';
+            if (n1 > 1 && n1 < 5) return 'недели';
+            if (n1 === 1) return 'неделя';
+            return 'недель';
+        }
+    };
 
     // Gauge center text plugin
     const gaugeCenterText = {
@@ -1050,12 +1079,13 @@ function createMacroGaugeChart(canvasId, stats) {
             ctx.textBaseline = 'middle';
             ctx.fillText(`${successRate}%`, centerX, centerY - 6);
 
-            // Draw X of X days
+            // Draw X of X units
             ctx.font = '500 11px Roboto';
             ctx.fillStyle = '#a0aec0';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`${successCount} из ${totalDays} дней`, centerX, centerY + 16);
+            const unitLabel = getDeclension(totalCount, unit);
+            ctx.fillText(`${successCount} из ${totalCount} ${unitLabel}`, centerX, centerY + 16);
 
             ctx.restore();
         }
