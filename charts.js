@@ -541,8 +541,14 @@ function createCalorieChart(data) {
                             const d = data[items[0].dataIndex];
                             const date = new Date(d.date);
                             const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                            const dateStr = `${date.getDate()} ${months[date.getMonth()]}`;
-                            return d.isWeekly ? `Неделя до ${dateStr}` : dateStr;
+
+                            if (d.isWeekly) {
+                                const f = (dt) => `${dt.getDate()}.${String(dt.getMonth() + 1).padStart(2, '0')}`;
+                                const monday = new Date(date);
+                                monday.setDate(monday.getDate() - 6);
+                                return `Неделя с ${f(monday)} по ${f(date)}`;
+                            }
+                            return `${date.getDate()} ${months[date.getMonth()]}`;
                         },
                         label: (context) => {
                             const d = data[context.dataIndex];
@@ -896,8 +902,14 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
                             const d = validData[items[0].dataIndex];
                             const date = new Date(d.date);
                             const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                            const dateStr = `${date.getDate()} ${months[date.getMonth()]}`;
-                            return d.isWeekly ? `Неделя до ${dateStr}` : dateStr;
+
+                            if (d.isWeekly) {
+                                const f = (dt) => `${dt.getDate()}.${String(dt.getMonth() + 1).padStart(2, '0')}`;
+                                const monday = new Date(date);
+                                monday.setDate(monday.getDate() - 6);
+                                return `Неделя с ${f(monday)} по ${f(date)}`;
+                            }
+                            return `${date.getDate()} ${months[date.getMonth()]}`;
                         },
                         label: (context) => {
                             const val = validData[context.dataIndex][macro];
