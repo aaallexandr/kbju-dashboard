@@ -214,13 +214,20 @@ function getWeeklyAverages(data) {
 function aggregateDataByWeek(fullData, filteredData, key) {
   const visibleWeeks = new Set(filteredData.map(d => getWeekEndingSunday(d.date)));
   const weeklyMap = {};
+  const today = new Date().toISOString().split('T')[0];
 
   fullData.forEach(d => {
     if (d[key] === null) return;
     const weekKey = getWeekEndingSunday(d.date);
     if (!visibleWeeks.has(weekKey)) return;
 
-    if (!weeklyMap[weekKey]) weeklyMap[weekKey] = { sum: 0, count: 0 };
+    if (!weeklyMap[weekKey]) {
+      weeklyMap[weekKey] = {
+        sum: 0,
+        count: 0,
+        isIncomplete: weekKey > today
+      };
+    }
     weeklyMap[weekKey].sum += d[key];
     weeklyMap[weekKey].count++;
   });
@@ -230,7 +237,8 @@ function aggregateDataByWeek(fullData, filteredData, key) {
     .map(([date, values]) => ({
       date: date,
       [key]: values.sum / values.count,
-      isWeekly: true
+      isWeekly: true,
+      isIncomplete: values.isIncomplete
     }));
 }
 

@@ -16,6 +16,29 @@ const commonOptions = {
     }
 };
 
+// Helper to create hatching pattern for incomplete weeks
+function createHatchPattern(bgColor, hatchColor = 'rgba(255, 255, 255, 0.25)') {
+    const canvas = document.createElement('canvas');
+    const size = 10;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Background color
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, size, size);
+
+    // Hatching lines
+    ctx.strokeStyle = hatchColor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, size);
+    ctx.lineTo(size, 0);
+    ctx.stroke();
+
+    return ctx.createPattern(canvas, 'repeat');
+}
+
 const pointLabelsPlugin = {
     id: 'pointLabels',
     afterDatasetsDraw(chart) {
@@ -499,7 +522,10 @@ function createCalorieChart(data) {
                 pointBorderColor: '#16213e',
                 pointRadius: 4,
                 pointHoverRadius: 6,
-                tension: 0.3
+                tension: 0.3,
+                segment: {
+                    borderDash: (ctx) => data[ctx.p1DataIndex] && data[ctx.p1DataIndex].isIncomplete ? [6, 4] : undefined
+                }
             }]
         },
         plugins: [calorieZonesPlugin],
@@ -831,7 +857,10 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
     if (macro === 'carbs') {
         datasets.push({
             data: s1,
-            backgroundColor: color,
+            backgroundColor: (ctx) => {
+                const item = validData[ctx.dataIndex];
+                return item && item.isIncomplete ? createHatchPattern(color) : color;
+            },
             borderRadius: 6,
             barPercentage: 0.7
         });
@@ -848,14 +877,22 @@ function createMacroThermometerChart(canvasId, data, macro, color, targetValue, 
             {
                 label: 'База',
                 data: s1,
-                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                backgroundColor: (ctx) => {
+                    const baseColor = 'rgba(255, 255, 255, 0.12)';
+                    const item = validData[ctx.dataIndex];
+                    return item && item.isIncomplete ? createHatchPattern(baseColor) : baseColor;
+                },
                 borderRadius: radiusFn(s1, 0),
                 barPercentage: 0.7
             },
             {
                 label: macro === 'proteins' ? 'Результат' : 'Перебор',
                 data: s2,
-                backgroundColor: macro === 'proteins' ? '#58D68D' : '#FF6B6B',
+                backgroundColor: (ctx) => {
+                    const resColor = macro === 'proteins' ? '#58D68D' : '#FF6B6B';
+                    const item = validData[ctx.dataIndex];
+                    return item && item.isIncomplete ? createHatchPattern(resColor) : resColor;
+                },
                 borderRadius: radiusFn(s2, 1),
                 barPercentage: 0.7
             }
