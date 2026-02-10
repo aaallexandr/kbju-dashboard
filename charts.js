@@ -79,6 +79,26 @@ const formatNumber = (val) => {
     return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 };
 
+// Start Helper: Ensure incomplete week dates are present
+function ensureCompleteWeek(dates, weeklyData) {
+    const lastWeek = weeklyData[weeklyData.length - 1];
+    if (lastWeek && lastWeek.isIncomplete) {
+        const sunday = new Date(lastWeek.fullDate);
+        // Add previous 6 days (Mon-Sat)
+        for (let i = 1; i < 7; i++) {
+            const d = new Date(sunday);
+            d.setDate(sunday.getDate() - i);
+            const dStr = d.toISOString().split('T')[0];
+            if (!dates.includes(dStr)) {
+                dates.push(dStr);
+            }
+        }
+    }
+    return dates.sort();
+}
+// End Helper
+
+
 // Weight Chart
 function createWeightChart(weeklyData, dailyData = []) {
     const canvas = document.getElementById('weightChart');
@@ -101,10 +121,12 @@ function createWeightChart(weeklyData, dailyData = []) {
     });
 
     // Merge all unique dates from both sources to ensure all points appear
-    const allDates = [...new Set([
+    let allDates = [...new Set([
         ...dailyData.map(d => d.date),
         ...weeklyData.map(w => w.fullDate)
-    ])].sort();
+    ])];
+
+    allDates = ensureCompleteWeek(allDates, weeklyData);
 
     // Calculate Y-axis bounds based on available weight data
     const weights = dailyData.map(d => parseFloat(d.weight)).filter(w => !isNaN(w));
@@ -257,10 +279,12 @@ function createBMIChart(weeklyData, dailyData = []) {
     });
 
     // Merge all unique dates
-    const allDates = [...new Set([
+    let allDates = [...new Set([
         ...dailyData.map(d => d.date),
         ...weeklyData.map(w => w.fullDate)
-    ])].sort();
+    ])];
+
+    allDates = ensureCompleteWeek(allDates, weeklyData);
 
     // Calculate Y-axis bounds
     const bmis = dailyData.map(d => parseFloat(d.bmi)).filter(b => !isNaN(b));

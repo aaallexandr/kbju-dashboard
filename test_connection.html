@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Script Debugger</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        input,
+        button,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #status {
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🕵️‍♂️ Antigravity Debugger</h2>
+    <p>Вставьте вашу ссылку Script URL (заканчивается на /exec):</p>
+    <input type="text" id="urlInput" placeholder="https://script.google.com/.../exec">
+
+    <p>Отправляем тестовые данные:</p>
+    <textarea id="payload" rows="5">
+{
+  "date": "2026-02-01",
+  "calories": 999,
+  "proteins": 10,
+  "fats": 10,
+  "carbs": 10,
+  "test_mode": true
+}</textarea>
+
+    <button onclick="sendTest()">🚀 Отправить проверку</button>
+
+    <div id="status"></div>
+
+    <script>
+        async function sendTest() {
+            const url = document.getElementById('urlInput').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!url) {
+                showStatus('Введите URL!', 'error');
+                return;
+            }
+
+            statusDiv.style.display = 'block';
+            statusDiv.className = '';
+            statusDiv.textContent = 'Отправка... ⏳';
+
+            try {
+                // Post to the script using 'no-cors' needed for simple fetch, 
+                // but usually Google Scripts return redirects.
+                // We use standard fetch with redirect: follow
+                const response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors', // Важно для Google Script из браузера
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: document.getElementById('payload').value
+                });
+
+                showStatus('✅ Запрос ушел! Проверьте вкладку debug_log в таблице. Если там появилась запись "999 calories" — скрипт работает, и проблема в телефоне.', 'success');
+
+            } catch (error) {
+                showStatus('❌ Ошибка отправки: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(text, type) {
+            const el = document.getElementById('status');
+            el.textContent = text;
+            el.className = type;
+            el.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

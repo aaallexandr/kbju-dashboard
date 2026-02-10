@@ -36,9 +36,24 @@ function doGet(e) {
 function doPost(e) {
   try {
     const contents = JSON.parse(e.postData.contents);
-    if (Array.isArray(contents)) return handleWeightUpdate(contents);
-    if (contents.weight !== undefined) return handleWeightUpdate([contents]); 
-    return createJsonResponse({ success: false, error: 'Unknown request type' });
+    const dataArray = Array.isArray(contents) ? contents : [contents];
+    
+    if (dataArray.length === 0) return createJsonResponse({ success: false, error: 'Empty data' });
+
+    // Detect type based on fields in first object
+    const first = dataArray[0];
+    
+    // Weight update
+    if (first.weight !== undefined) {
+      return handleWeightUpdate(dataArray);
+    }
+    
+    // KBJU update (calories, proteins, fats, carbs)
+    if (first.calories !== undefined || first.proteins !== undefined || first.fats !== undefined || first.carbs !== undefined) {
+      return handleKBJUUpdate(dataArray);
+    }
+
+    return createJsonResponse({ success: false, error: 'Unknown request type. Use "weight" or nutrition fields ("calories", etc.)' });
   } catch (error) {
     logToSheet("🔥 Error in doPost: " + error.toString());
     return createJsonResponse({ success: false, error: error.toString() });
@@ -51,64 +66,112 @@ function handleWeightUpdate(dataArray) {
   const values = dataRange.getValues(); 
   
   const validMap = new Map();
-  const fallbackList = []; // Для того, что ВООБЩЕ никак не похоже на дату
+  const fallbackList = []; 
   
-  // 1. Считываем старые данные
   if (values.length > 1) {
     for (let i = 1; i < values.length; i++) {
       const rawDate = values[i][0];
       const weight = values[i][1];
-      
-      // Пропускаем полностью пустые
       if ((rawDate === null || rawDate === '') && (weight === null || weight === '')) continue;
 
       const normDate = normalizeDate(rawDate);
-      
       if (normDate) {
-        // Успешно распознали дату -> сохраняем как валидную (перезапишем дубли)
         validMap.set(normDate, weight);
       } else {
-        // Не смогли распознать -> сохраняем как есть (Safe Mode)
-        // Логируем, чтобы понять причину
-        const typeInfo = (rawDate && typeof rawDate === 'object') ? rawDate.constructor.name : typeof rawDate;
-        logToSheet(`⚠️ Preserving unparsed ROW ${i+1}: Val='${rawDate}' Type=[${typeInfo}]`);
         fallbackList.push([rawDate, weight]);
       }
     }
   }
   
-  // 2. Накатываем новые
   dataArray.forEach(item => {
     const date = normalizeDate(item.date) || normalizeDate(new Date());
     const weight = parseFloat(item.weight);
-    
     if (date && !isNaN(weight)) {
       validMap.set(date, weight);
     }
   });
   
-  // 3. Сборка (Сортируем только Валидные, Невалидные кидаем в начало)
   const sortedRows = [];
   validMap.forEach((w, d) => {
     sortedRows.push([d, w]);
   });
   
-  sortedRows.sort((a, b) => {
-    return new Date(a[0]) - new Date(b[0]);
-  });
-  
-  // Сначала "мусор/текст", потом красивые даты
+  sortedRows.sort((a, b) => new Date(a[0]) - new Date(b[0]));
   const finalOutput = [...fallbackList, ...sortedRows];
   
-  // 4. Запись
   sheet.clearContents();
   const outputData = [['Date', 'Weight'], ...finalOutput];
-  
   if (outputData.length > 0) {
     sheet.getRange(1, 1, outputData.length, 2).setValues(outputData);
   }
   
-  return createJsonResponse({ success: true, message: `Processed.` });
+  return createJsonResponse({ success: true, message: `Weight processed.` });
+}
+
+function handleKBJUUpdate(dataArray) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('kbju_data');
+  if (!sheet) return createJsonResponse({ success: false, error: 'Sheet kbju_data not found' });
+
+  logToSheet("🥗 Processing Nutrition data...");
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(h => h.toString().toLowerCase().trim());
+  const validMap = new Map();
+  const fallbackList = [];
+  
+  if (values.length > 1) {
+    for (let i = 1; i < values.length; i++) {
+      const normDate = normalizeDate(values[i][0]);
+      if (normDate) {
+        let obj = {};
+        for (let j = 1; j < headers.length; j++) obj[headers[j]] = values[i][j];
+        validMap.set(normDate, obj);
+      } else if (values[i][0] !== '' || values[i].some(v => v !== '')) {
+        fallbackList.push(values[i]);
+      }
+    }
+  }
+
+  // Helper to parse numbers with commas or dots
+  const parseNum = (val) => {
+    if (val === undefined || val === null || val === '') return undefined;
+    // Replace comma with dot and remove spaces (e.g. "1 059,92" -> "1059.92")
+    const str = val.toString().replace(/,/g, '.').replace(/\s/g, ''); 
+    const num = parseFloat(str);
+    return isNaN(num) ? undefined : num;
+  };
+
+  dataArray.forEach(item => {
+    const date = normalizeDate(item.date) || normalizeDate(new Date());
+    if (date) {
+      if (!validMap.has(date)) validMap.set(date, { calories:'', proteins:'', fats:'', carbs:'' });
+      const current = validMap.get(date);
+      
+      const cal = parseNum(item.calories);
+      const pro = parseNum(item.proteins);
+      const fat = parseNum(item.fats);
+      const carb = parseNum(item.carbs);
+
+      if (cal !== undefined) current.calories = cal;
+      if (pro !== undefined) current.proteins = pro;
+      if (fat !== undefined) current.fats = fat;
+      if (carb !== undefined) current.carbs = carb;
+      
+      if(cal || pro) logToSheet(`   📝 Update for ${date}: Cal=${cal}, Pro=${pro}`);
+    }
+  });
+
+  const sortedRows = Array.from(validMap.entries())
+    .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+    .map(([d, v]) => [d, v.calories, v.proteins, v.fats, v.carbs]);
+
+  sheet.clearContents();
+  const output = [['Date', 'Calories', 'Proteins', 'Fats', 'Carbs'], ...fallbackList, ...sortedRows];
+  if (output.length > 0) {
+    sheet.getRange(1, 1, output.length, 5).setValues(output);
+  }
+  logToSheet("✅ Nutrition (KBJU) updated.");
+  return createJsonResponse({ success: true, message: `KBJU processed.` });
 }
 
 // === ULTIMATE DATE PARSER ===

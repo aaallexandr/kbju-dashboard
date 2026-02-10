@@ -4,7 +4,7 @@
 const HEIGHT_CM = 175;
 const STORAGE_KEY_SETTINGS = 'kbju_dashboard_settings';
 const STORAGE_KEY_SHEET_URL = 'kbju_dashboard_sheet_url';
-const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbw7KMExjoF2CF0zIQk1nrjR5osaLEiGCh40OpqVMl22y2x4YFRGIfKQlIU1xiYe4TybgQ/exec';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbznZ_9b18vk8Gs3ys41scrYs0j2c3522zF-xtXVioF9dhesw6-JRvMywow-3GbnmyBJJw/exec';
 
 // Default target values (can be overridden in settings)
 let targets = {

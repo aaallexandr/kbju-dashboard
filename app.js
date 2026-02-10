@@ -55,6 +55,7 @@ function closeSettingsPanel() {
 
 // Populate settings form with current values
 function populateSettingsForm() {
+    document.getElementById('settingSheetUrl').value = getSheetUrl();
     document.getElementById('settingBmiTarget').value = targets.bmi;
 
     // Macro targets
@@ -71,6 +72,10 @@ function populateSettingsForm() {
 
 // Save settings from form
 function handleSaveSettings() {
+    const sheetUrl = document.getElementById('settingSheetUrl').value;
+    if (sheetUrl && sheetUrl.trim() !== '') {
+        saveSheetUrl(sheetUrl.trim());
+    }
 
     const newSettings = {
         bmi: parseFloat(document.getElementById('settingBmiTarget').value),
@@ -148,7 +153,14 @@ function updateKBJUCharts(data) {
 
     if (data.length === 0) return;
 
-    const filteredData = data.filter(d => d.calories !== null);
+    let filteredData = data.filter(d => d.calories !== null);
+
+    // If daily view, exclude today's incomplete data
+    if (nutritionView === 'daily') {
+        const today = new Date().toISOString().split('T')[0];
+        filteredData = filteredData.filter(d => d.date < today);
+    }
+
     const calorieData = nutritionView === 'weekly' ? aggregateDataByWeek(kbjuData, filteredData, 'calories') : filteredData;
 
     charts.calorie = createCalorieChart(calorieData);
@@ -167,7 +179,13 @@ function updateMacroCharts(data) {
     if (charts.fats) charts.fats.destroy();
     if (charts.carbs) charts.carbs.destroy();
 
-    const filteredData = data.filter(d => d.proteins !== null || d.fats !== null || d.carbs !== null);
+    let filteredData = data.filter(d => d.proteins !== null || d.fats !== null || d.carbs !== null);
+
+    // If daily view, exclude today's incomplete data
+    if (nutritionView === 'daily') {
+        const today = new Date().toISOString().split('T')[0];
+        filteredData = filteredData.filter(d => d.date < today);
+    }
 
     if (filteredData.length === 0) return;
 
