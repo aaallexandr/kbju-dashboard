@@ -35,7 +35,11 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    const contents = JSON.parse(e.postData.contents);
+    const rawContent = e.postData.contents;
+    // Log the RAW payload to see exactly what is being sent
+    logToSheet("📦 RAW PAYLOAD: " + rawContent.substring(0, 3000)); 
+
+    const contents = JSON.parse(rawContent);
     const dataArray = Array.isArray(contents) ? contents : [contents];
     
     if (dataArray.length === 0) return createJsonResponse({ success: false, error: 'Empty data' });
@@ -44,12 +48,12 @@ function doPost(e) {
     const first = dataArray[0];
     
     // Weight update
-    if (first.weight !== undefined) {
+    if (getVal(first, 'weight') !== undefined) {
       return handleWeightUpdate(dataArray);
     }
     
-    // KBJU update (calories, proteins, fats, carbs)
-    if (first.calories !== undefined || first.proteins !== undefined || first.fats !== undefined || first.carbs !== undefined) {
+    // KBJU update (check various keys)
+    if (getVal(first, 'calories') !== undefined || getVal(first, 'proteins') !== undefined) {
       return handleKBJUUpdate(dataArray);
     }
 
