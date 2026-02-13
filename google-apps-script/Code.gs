@@ -132,25 +132,31 @@ function handleKBJUUpdate(dataArray) {
     }
   }
 
-  // Helper to parse numbers with commas or dots
+  // Helper to parse numbers with commas or dots and cleanup
   const parseNum = (val) => {
     if (val === undefined || val === null || val === '') return undefined;
-    // Replace comma with dot and remove spaces (e.g. "1 059,92" -> "1059.92")
-    const str = val.toString().replace(/,/g, '.').replace(/\s/g, ''); 
+    // Handle non-breaking spaces and other whitespace
+    let str = val.toString().replace(/,/g, '.').replace(/[\s\u00A0]/g, '');
     const num = parseFloat(str);
     return isNaN(num) ? undefined : num;
   };
+  
+  // Helper to get value case-insensitively
+  const getVal = (obj, key) => {
+    const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+    return foundKey ? obj[foundKey] : undefined;
+  };
 
   dataArray.forEach(item => {
-    const date = normalizeDate(item.date) || normalizeDate(new Date());
+    const date = normalizeDate(getVal(item, 'date')) || normalizeDate(new Date());
     if (date) {
       if (!validMap.has(date)) validMap.set(date, { calories:'', proteins:'', fats:'', carbs:'' });
       const current = validMap.get(date);
       
-      const cal = parseNum(item.calories);
-      const pro = parseNum(item.proteins);
-      const fat = parseNum(item.fats);
-      const carb = parseNum(item.carbs);
+      const cal = parseNum(getVal(item, 'calories'));
+      const pro = parseNum(getVal(item, 'proteins'));
+      const fat = parseNum(getVal(item, 'fats'));
+      const carb = parseNum(getVal(item, 'carbs'));
 
       if (cal !== undefined) current.calories = cal;
       if (pro !== undefined) current.proteins = pro;
@@ -158,6 +164,7 @@ function handleKBJUUpdate(dataArray) {
       if (carb !== undefined) current.carbs = carb;
       
       if(cal || pro) logToSheet(`   📝 Update for ${date}: Cal=${cal}, Pro=${pro}`);
+      else logToSheet(`   ⚠️ Received data for ${date} but values are empty. Raw keys: ${Object.keys(item).join(',')}`);
     }
   });
 
