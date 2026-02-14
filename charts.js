@@ -16,6 +16,15 @@ const commonOptions = {
     }
 };
 
+const zoneLabels = {
+    unhealthyDeficit: 'Нездоровый дефицит',
+    fastLoss: 'Быстрое похудение',
+    healthyLoss: 'Здоровое похудение',
+    slowLoss: 'Медленное похудение',
+    maintenance: 'Поддержание веса',
+    surplus: 'Избыток'
+};
+
 // Helper to create hatching pattern for incomplete weeks
 function createHatchPattern(bgColor, hatchColor = 'rgba(255, 255, 255, 0.25)') {
     const canvas = document.createElement('canvas');
@@ -112,12 +121,18 @@ function createWeightChart(weeklyData, dailyData = []) {
     // Create maps for efficient lookup
     const weeklyMap = {};
     weeklyData.forEach(d => {
-        weeklyMap[d.fullDate] = { avg: d.avgWeight, incomplete: d.isIncomplete };
+        weeklyMap[d.fullDate] = {
+            avg: d.avgWeight,
+            incomplete: d.isIncomplete,
+            category: d.calorieCategory,
+            avgCalories: d.avgCalories
+        };
     });
 
     const dailyMap = {};
     dailyData.forEach(d => {
-        dailyMap[d.date] = d.weight;
+        const w = parseFloat(d.weight);
+        if (!isNaN(w) && w > 0) dailyMap[d.date] = w;
     });
 
     // Merge all unique dates from both sources to ensure all points appear
@@ -128,9 +143,9 @@ function createWeightChart(weeklyData, dailyData = []) {
 
     allDates = ensureCompleteWeek(allDates, weeklyData);
 
-    // Calculate Y-axis bounds based on available weight data
-    const weights = dailyData.map(d => parseFloat(d.weight)).filter(w => !isNaN(w));
-    const weeklyWeights = weeklyData.map(d => parseFloat(d.avgWeight)).filter(w => !isNaN(w));
+    // Calculate Y-axis bounds based on available weight data (strictly positive)
+    const weights = dailyData.map(d => parseFloat(d.weight)).filter(w => !isNaN(w) && w > 0);
+    const weeklyWeights = weeklyData.map(d => parseFloat(d.avgWeight)).filter(w => !isNaN(w) && w > 0);
     const allWeights = [...weights, ...weeklyWeights];
 
     const dataMin = allWeights.length > 0 ? Math.min(...allWeights) : 70;
@@ -153,11 +168,21 @@ function createWeightChart(weeklyData, dailyData = []) {
                     tension: 0.4,
                     fill: false,
                     pointRadius: 6,
-                    pointBackgroundColor: (ctx) => isIncompleteMap[ctx.dataIndex] ? '#718096' : colors.primary,
+                    pointBackgroundColor: (ctx) => {
+                        const dateStr = allDates[ctx.dataIndex];
+                        const info = weeklyMap[dateStr];
+                        if (info && info.category) return colors.zones[info.category];
+                        return info && info.incomplete ? '#718096' : colors.primary;
+                    },
                     pointBorderColor: '#1a1a2e',
                     pointBorderWidth: 3,
                     pointHoverRadius: 6,
-                    pointHoverBackgroundColor: (ctx) => isIncompleteMap[ctx.dataIndex] ? '#718096' : colors.primary,
+                    pointHoverBackgroundColor: (ctx) => {
+                        const dateStr = allDates[ctx.dataIndex];
+                        const info = weeklyMap[dateStr];
+                        if (info && info.category) return colors.zones[info.category];
+                        return info && info.incomplete ? '#718096' : colors.primary;
+                    },
                     spanGaps: true,
                     order: 1,
                     segment: {
@@ -236,18 +261,33 @@ function createWeightChart(weeklyData, dailyData = []) {
                 ...commonOptions.plugins,
                 tooltip: {
                     backgroundColor: '#16213e',
-                    displayColors: false,
+                    displayColors: true,
+                    usePointStyle: true,
+                    boxPadding: 4,
                     padding: 12,
-                    filter: (tooltipItem) => tooltipItem.datasetIndex === 1, // Only daily weight
+                    filter: (tooltipItem) => tooltipItem.datasetIndex === 0, // Only weekly average
                     callbacks: {
-                        title: (items) => {
-                            const date = new Date(allDates[items[0].dataIndex]);
-                            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                            return `${date.getDate()} ${months[date.getMonth()]}`;
-                        },
+                        title: () => '', // No title
                         label: (context) => {
-                            const val = parseFloat(context.raw);
-                            return `${formatNumber(val.toFixed(1))} кг`;
+                            const dateStr = allDates[context.dataIndex];
+                            const info = weeklyMap[dateStr];
+                            if (!info) return '';
+
+                            const calStr = info.avgCalories ? `${formatNumber(info.avgCalories)} ккал` : '';
+                            const zoneStr = info.category ? zoneLabels[info.category] : '';
+
+                            return [zoneStr, calStr].filter(s => s !== '');
+                        },
+                        labelColor: (context) => {
+                            const dateStr = allDates[context.dataIndex];
+                            const info = weeklyMap[dateStr];
+                            const color = (info && info.category) ? colors.zones[info.category] : colors.primary;
+                            return {
+                                borderColor: 'transparent',
+                                backgroundColor: color,
+                                borderWidth: 0,
+                                borderRadius: 5
+                            };
                         },
                         labelTextColor: () => '#ffffff'
                     }
@@ -270,12 +310,18 @@ function createBMIChart(weeklyData, dailyData = []) {
     // Create maps for efficient lookup
     const weeklyMap = {};
     weeklyData.forEach(d => {
-        weeklyMap[d.fullDate] = { avg: d.avgBmi, incomplete: d.isIncomplete };
+        weeklyMap[d.fullDate] = {
+            avg: d.avgBmi,
+            incomplete: d.isIncomplete,
+            category: d.calorieCategory,
+            avgCalories: d.avgCalories
+        };
     });
 
     const dailyMap = {};
     dailyData.forEach(d => {
-        dailyMap[d.date] = d.bmi;
+        const b = parseFloat(d.bmi);
+        if (!isNaN(b) && b > 0) dailyMap[d.date] = b;
     });
 
     // Merge all unique dates
@@ -286,9 +332,9 @@ function createBMIChart(weeklyData, dailyData = []) {
 
     allDates = ensureCompleteWeek(allDates, weeklyData);
 
-    // Calculate Y-axis bounds
-    const bmis = dailyData.map(d => parseFloat(d.bmi)).filter(b => !isNaN(b));
-    const weeklyBmis = weeklyData.map(d => parseFloat(d.avgBmi)).filter(b => !isNaN(b));
+    // Calculate Y-axis bounds (strictly positive)
+    const bmis = dailyData.map(d => parseFloat(d.bmi)).filter(b => !isNaN(b) && b > 0);
+    const weeklyBmis = weeklyData.map(d => parseFloat(d.avgBmi)).filter(b => !isNaN(b) && b > 0);
     const allBmis = [...bmis, ...weeklyBmis, targets.bmi];
 
     const dataMin = allBmis.length > 0 ? Math.min(...allBmis) : 23;
@@ -311,11 +357,21 @@ function createBMIChart(weeklyData, dailyData = []) {
                     tension: 0.4,
                     fill: false,
                     pointRadius: 6,
-                    pointBackgroundColor: (ctx) => isIncompleteMap[ctx.dataIndex] ? '#718096' : colors.primary,
+                    pointBackgroundColor: (ctx) => {
+                        const dateStr = allDates[ctx.dataIndex];
+                        const info = weeklyMap[dateStr];
+                        if (info && info.category) return colors.zones[info.category];
+                        return info && info.incomplete ? '#718096' : colors.primary;
+                    },
                     pointBorderColor: '#1a1a2e',
                     pointBorderWidth: 3,
                     pointHoverRadius: 6,
-                    pointHoverBackgroundColor: (ctx) => isIncompleteMap[ctx.dataIndex] ? '#718096' : colors.primary,
+                    pointHoverBackgroundColor: (ctx) => {
+                        const dateStr = allDates[ctx.dataIndex];
+                        const info = weeklyMap[dateStr];
+                        if (info && info.category) return colors.zones[info.category];
+                        return info && info.incomplete ? '#718096' : colors.primary;
+                    },
                     spanGaps: true,
                     order: 1,
                     segment: {
@@ -402,18 +458,33 @@ function createBMIChart(weeklyData, dailyData = []) {
                 },
                 tooltip: {
                     backgroundColor: '#16213e',
-                    displayColors: false,
+                    displayColors: true,
+                    usePointStyle: true,
+                    boxPadding: 4,
                     padding: 12,
-                    filter: (tooltipItem) => tooltipItem.datasetIndex === 1, // Only daily BMI
+                    filter: (tooltipItem) => tooltipItem.datasetIndex === 0, // Only weekly average
                     callbacks: {
-                        title: (items) => {
-                            const date = new Date(allDates[items[0].dataIndex]);
-                            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                            return `${date.getDate()} ${months[date.getMonth()]}`;
-                        },
+                        title: () => '', // No title
                         label: (context) => {
-                            const val = parseFloat(context.raw);
-                            return formatNumber(val.toFixed(1));
+                            const dateStr = allDates[context.dataIndex];
+                            const info = weeklyMap[dateStr];
+                            if (!info) return '';
+
+                            const calStr = info.avgCalories ? `${formatNumber(info.avgCalories)} ккал` : '';
+                            const zoneStr = info.category ? zoneLabels[info.category] : '';
+
+                            return [zoneStr, calStr].filter(s => s !== '');
+                        },
+                        labelColor: (context) => {
+                            const dateStr = allDates[context.dataIndex];
+                            const info = weeklyMap[dateStr];
+                            const color = (info && info.category) ? colors.zones[info.category] : colors.primary;
+                            return {
+                                borderColor: 'transparent',
+                                backgroundColor: color,
+                                borderWidth: 0,
+                                borderRadius: 5
+                            };
                         },
                         labelTextColor: () => '#ffffff'
                     }

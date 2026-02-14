@@ -118,12 +118,13 @@ function formatDateDDMM(dateStr) {
 }
 
 // Determine calorie category
+// Determine calorie category
 function getCalorieCategory(calories) {
   const zones = targets.calorieZones;
-  if (calories < zones.unhealthyDeficit) return 'unhealthy_deficit';
-  if (calories < zones.fastLoss) return 'fast_loss';
-  if (calories < zones.healthyLoss) return 'healthy_loss';
-  if (calories < zones.slowLoss) return 'slow_loss';
+  if (calories < zones.unhealthyDeficit) return 'unhealthyDeficit';
+  if (calories < zones.fastLoss) return 'fastLoss';
+  if (calories < zones.healthyLoss) return 'healthyLoss';
+  if (calories < zones.slowLoss) return 'slowLoss';
   if (calories < zones.maintenance) return 'maintenance';
   return 'surplus';
 }
@@ -146,25 +147,28 @@ async function fetchDataFromSheets(sheetUrl) {
   }
 
   // Process weight data
-  weightData = (data.weight || []).map(row => ({
-    date: row.date,
-    weight: row.weight,
-    bmi: calculateBMI(row.weight),
-    week: getWeekEndingSunday(row.date), // Use Sunday as grouping key
-    year: new Date(row.date).getFullYear()
-  })).filter(row => row.weight !== null && row.weight !== '');
+  weightData = (data.weight || []).map(row => {
+    const w = parseFloat(row.weight);
+    return {
+      date: row.date,
+      weight: !isNaN(w) && w > 0 ? w : null,
+      bmi: !isNaN(w) && w > 0 ? calculateBMI(w) : null,
+      week: getWeekEndingSunday(row.date), // Use Sunday as grouping key
+      year: new Date(row.date).getFullYear()
+    };
+  }).filter(row => row.weight !== null);
 
   // Process KBJU data
   kbjuData = (data.kbju || []).map(row => ({
     date: row.date,
-    calories: row.calories,
-    proteins: row.proteins || null,
-    fats: row.fats || null,
-    carbs: row.carbs || null,
-    category: getCalorieCategory(row.calories),
+    calories: parseFloat(row.calories),
+    proteins: row.proteins ? parseFloat(row.proteins) : null,
+    fats: row.fats ? parseFloat(row.fats) : null,
+    carbs: row.carbs ? parseFloat(row.carbs) : null,
+    category: getCalorieCategory(parseFloat(row.calories)),
     week: getWeekEndingSunday(row.date), // Use Sunday as grouping key
     month: new Date(row.date).toLocaleString('en', { month: 'short' })
-  })).filter(row => row.calories !== null && row.calories !== '');
+  })).filter(row => !isNaN(row.calories) && row.calories > 0);
 
   return { weightData, kbjuData };
 }
@@ -174,38 +178,55 @@ function getWeeklyAverages(data) {
   const weeks = {};
   const today = new Date().toISOString().split('T')[0];
 
-  data.forEach(item => {
-    // Determine the grouping week key (Sunday)
-    const weekKey = item.week;
+  // Helper to get stats for a week
+  const getWeeklyNutrition = (weekKey) => {
+    const weeklyCalories = kbjuData
+      .filter(d => d.week === weekKey)
+      .map(d => d.calories);
 
-    // Calculate the start of the week (Monday)
+    if (weeklyCalories.length === 0) return { avg: null, category: null };
+    const avgCal = Math.round(weeklyCalories.reduce((a, b) => a + b, 0) / weeklyCalories.length);
+    return { avg: avgCal, category: getCalorieCategory(avgCal) };
+  };
+
+  data.forEach(item => {
+    const weekKey = item.week;
     const sunday = new Date(weekKey);
     const monday = new Date(sunday);
     monday.setDate(monday.getDate() - 6);
     const mondayStr = monday.toISOString().split('T')[0];
 
-    // Skip if the week starts in the future (entirely future week)
+    // Skip if the week starts in the future
     if (mondayStr > today) return;
 
     if (!weeks[weekKey]) {
-      weeks[weekKey] = { weight: [], bmi: [], isIncomplete: weekKey > today };
+      const nutrition = getWeeklyNutrition(weekKey);
+      weeks[weekKey] = {
+        weight: [],
+        bmi: [],
+        isIncomplete: weekKey > today,
+        avgCalories: nutrition.avg,
+        calorieCategory: nutrition.category
+      };
     }
-    if (item.weight !== null) weeks[weekKey].weight.push(item.weight);
-    if (item.bmi !== null) weeks[weekKey].bmi.push(item.bmi);
+    if (item.weight && item.weight > 0) weeks[weekKey].weight.push(item.weight);
+    if (item.bmi && item.bmi > 0) weeks[weekKey].bmi.push(item.bmi);
   });
 
   return Object.entries(weeks)
-    .sort((a, b) => a[0].localeCompare(b[0])) // Sort by YYYY-MM-DD key
+    .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([weekKey, values]) => ({
-      week: formatDateDDMM(weekKey), // Format to DD.MM
-      fullDate: weekKey, // Keep full date for tooltips
+      week: formatDateDDMM(weekKey),
+      fullDate: weekKey,
       avgWeight: values.weight.length > 0
         ? (values.weight.reduce((a, b) => a + b, 0) / values.weight.length).toFixed(1)
         : null,
       avgBmi: values.bmi.length > 0
         ? (values.bmi.reduce((a, b) => a + b, 0) / values.bmi.length).toFixed(1)
         : null,
-      isIncomplete: values.isIncomplete
+      isIncomplete: values.isIncomplete,
+      avgCalories: values.avgCalories,
+      calorieCategory: values.calorieCategory
     }));
 }
 

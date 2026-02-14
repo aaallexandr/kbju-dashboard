@@ -36,28 +36,53 @@ function doGet(e) {
 function doPost(e) {
   try {
     const rawContent = e.postData.contents;
-    // Log the RAW payload to see exactly what is being sent
-    logToSheet("📦 RAW PAYLOAD: " + rawContent.substring(0, 3000)); 
+    // Log slightly less to save space, but keep it for debug
+    // logToSheet("📦 RAW PAYLOAD: " + rawContent.substring(0, 500)); 
 
     const contents = JSON.parse(rawContent);
     const dataArray = Array.isArray(contents) ? contents : [contents];
     
     if (dataArray.length === 0) return createJsonResponse({ success: false, error: 'Empty data' });
 
-    // Detect type based on fields in first object
-    const first = dataArray[0];
-    
-    // Weight update
-    if (getVal(first, 'weight') !== undefined) {
-      return handleWeightUpdate(dataArray);
-    }
-    
-    // KBJU update (check various keys)
-    if (getVal(first, 'calories') !== undefined || getVal(first, 'proteins') !== undefined) {
-      return handleKBJUUpdate(dataArray);
+    const weightItems = [];
+    const kbjuItems = [];
+
+    // Split data into buckets
+    dataArray.forEach(item => {
+      // Check for Weight
+      if (getVal(item, 'weight') !== undefined) {
+        weightItems.push(item);
+      }
+      // Check for ANY nutrition field. Note: an item can be BOTH (technically), though usually separate.
+      if (getVal(item, 'calories') !== undefined || 
+          getVal(item, 'proteins') !== undefined || 
+          getVal(item, 'fats') !== undefined || 
+          getVal(item, 'carbs') !== undefined) {
+        kbjuItems.push(item);
+      }
+    });
+
+    let message = [];
+
+    // Process Weight bucket
+    if (weightItems.length > 0) {
+      handleWeightUpdate(weightItems);
+      message.push(`Weight processed (${weightItems.length} items)`);
     }
 
-    return createJsonResponse({ success: false, error: 'Unknown request type. Use "weight" or nutrition fields ("calories", etc.)' });
+    // Process KBJU bucket
+    if (kbjuItems.length > 0) {
+      handleKBJUUpdate(kbjuItems);
+      message.push(`KBJU processed (${kbjuItems.length} items)`);
+    }
+
+    if (message.length === 0) {
+       logToSheet("⚠️ No valid keys found. Keys in first item: " + Object.keys(dataArray[0]).join(','));
+       return createJsonResponse({ success: false, error: 'No valid weight or nutrition keys found in data.' });
+    }
+
+    return createJsonResponse({ success: true, message: message.join(', ') });
+
   } catch (error) {
     logToSheet("🔥 Error in doPost: " + error.toString());
     return createJsonResponse({ success: false, error: error.toString() });
@@ -135,21 +160,6 @@ function handleKBJUUpdate(dataArray) {
       }
     }
   }
-
-  // Helper to parse numbers with commas or dots and cleanup
-  const parseNum = (val) => {
-    if (val === undefined || val === null || val === '') return undefined;
-    // Handle non-breaking spaces and other whitespace
-    let str = val.toString().replace(/,/g, '.').replace(/[\s\u00A0]/g, '');
-    const num = parseFloat(str);
-    return isNaN(num) ? undefined : num;
-  };
-  
-  // Helper to get value case-insensitively
-  const getVal = (obj, key) => {
-    const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
-    return foundKey ? obj[foundKey] : undefined;
-  };
 
   dataArray.forEach(item => {
     const date = normalizeDate(getVal(item, 'date')) || normalizeDate(new Date());
@@ -231,6 +241,22 @@ function normalizeDate(input) {
 }
 
 // === UTILS ===
+
+// Helper to get value case-insensitively (GLOBAL)
+function getVal(obj, key) {
+  if (!obj) return undefined;
+  const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+  return foundKey ? obj[foundKey] : undefined;
+}
+
+// Helper to parse numbers with commas or dots and cleanup (GLOBAL)
+function parseNum(val) {
+  if (val === undefined || val === null || val === '') return undefined;
+  // Handle non-breaking spaces and other whitespace
+  let str = val.toString().replace(/,/g, '.').replace(/[\s\u00A0\u200B]/g, '');
+  const num = parseFloat(str);
+  return isNaN(num) ? undefined : num;
+}
 
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
