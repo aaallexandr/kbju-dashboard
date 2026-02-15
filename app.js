@@ -267,7 +267,7 @@ function updateMacroCharts(data) {
 }
 
 // Initialize date range inputs with data bounds
-const MIN_ALLOWED_DATE = "2025-12-22";
+const MIN_ALLOWED_DATE = "2025-12-01";
 let nutritionDatePicker = null;
 let metricsDatePicker = null;
 
