@@ -33,7 +33,7 @@ const colors = {
   zones: {
     unhealthyDeficit: "#FF6B6B",
     fastLoss: "#ABEBC6",
-    healthyLoss: "#58D68D",
+    healthyLoss: "#27AE60",
     slowLoss: "#ABEBC6",
     maintenance: "#FFB74D",
     surplus: "#FF6B6B"

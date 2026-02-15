@@ -164,7 +164,7 @@ function updateKBJUCharts(data) {
     const calorieData = nutritionView === 'weekly' ? aggregateDataByWeek(kbjuData, filteredData, 'calories') : filteredData;
 
     charts.calorie = createCalorieChart(calorieData);
-    charts.distribution = createDistributionChart(filteredData);
+    charts.distribution = createDistributionChart(calorieData);
 
     // Update distribution title
     const distTitleEl = document.getElementById('distributionChartTitle');

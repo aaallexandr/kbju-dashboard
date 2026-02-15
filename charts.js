@@ -186,7 +186,12 @@ function createWeightChart(weeklyData, dailyData = []) {
                     spanGaps: true,
                     order: 1,
                     segment: {
-                        borderColor: colors.primary, // Same color as main line
+                        borderColor: (ctx) => {
+                            const dateStr = allDates[ctx.p1DataIndex];
+                            const info = weeklyMap[dateStr];
+                            if (info && info.category) return colors.zones[info.category];
+                            return info && info.incomplete ? '#718096' : colors.primary;
+                        },
                         borderDash: (ctx) => isIncompleteMap[ctx.p1DataIndex] ? [6, 4] : undefined
                     }
                 },
@@ -375,7 +380,12 @@ function createBMIChart(weeklyData, dailyData = []) {
                     spanGaps: true,
                     order: 1,
                     segment: {
-                        borderColor: colors.primary,
+                        borderColor: (ctx) => {
+                            const dateStr = allDates[ctx.p1DataIndex];
+                            const info = weeklyMap[dateStr];
+                            if (info && info.category) return colors.zones[info.category];
+                            return info && info.incomplete ? '#718096' : colors.primary;
+                        },
                         borderDash: (ctx) => isIncompleteMap[ctx.p1DataIndex] ? [6, 4] : undefined
                     }
                 },
@@ -546,7 +556,7 @@ function createCalorieChart(data) {
             const bands = [
                 { color: '#FF6B6B', top: zones.unhealthyDeficit, bottom: y.min },
                 { color: '#ABEBC6', top: zones.fastLoss, bottom: zones.unhealthyDeficit },
-                { color: '#58D68D', top: zones.healthyLoss, bottom: zones.fastLoss },
+                { color: '#27AE60', top: zones.healthyLoss, bottom: zones.fastLoss },
                 { color: '#ABEBC6', top: zones.slowLoss, bottom: zones.healthyLoss },
                 { color: '#FFB74D', top: zones.maintenance, bottom: zones.slowLoss },
                 { color: '#FF6B6B', top: y.max, bottom: zones.maintenance }
@@ -695,10 +705,10 @@ function createDistributionChart(data) {
 
     // Categorize data
     const categories = {
-        unhealthy_deficit: 0,
-        fast_loss: 0,
-        healthy_loss: 0,
-        slow_loss: 0,
+        unhealthyDeficit: 0,
+        fastLoss: 0,
+        healthyLoss: 0,
+        slowLoss: 0,
         maintenance: 0,
         surplus: 0
     };
@@ -723,19 +733,19 @@ function createDistributionChart(data) {
     ];
 
     const categoryKeys = [
-        'unhealthy_deficit',
-        'fast_loss',
-        'healthy_loss',
-        'slow_loss',
+        'unhealthyDeficit',
+        'fastLoss',
+        'healthyLoss',
+        'slowLoss',
         'maintenance',
         'surplus'
     ];
 
     const colors = [
-        '#FF6B6B', // unhealthy_deficit
-        '#ABEBC6', // fast_loss
-        '#58D68D', // healthy_loss
-        '#ABEBC6', // slow_loss
+        '#FF6B6B', // unhealthyDeficit
+        '#ABEBC6', // fastLoss
+        '#27AE60', // healthyLoss
+        '#ABEBC6', // slowLoss
         '#FFB74D', // maintenance
         '#FF6B6B'  // surplus
     ];
